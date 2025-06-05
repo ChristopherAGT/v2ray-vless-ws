@@ -6,82 +6,70 @@
 # Descripción: Elimina un servicio Cloud Run, su imagen asociada en Container Registry, y archivos locales.
 # ───────────────────────────────────────────────
 
-# Colores para mensajes
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m' # Sin color
-
-# Función para imprimir error y salir
-function handle_error {
-  echo -e "${RED}❌ ERROR:${NC} $1"
-  exit 1
-}
-
-# Regiones a inspeccionar
-regions=(
-  us-central1 us-east1 us-east4 us-west1
-  europe-west1 europe-west4
-  asia-northeast1 asia-southeast1
-)
-
+regions=(us-central1 us-east1 us-east4 us-west1 europe-west1 europe-west4 asia-northeast1 asia-southeast1)
 declare -a service_array
 
-echo -e "${CYAN}🔍 Buscando servicios Cloud Run en todas las regiones...${NC}"
+echo "🔍 Buscando servicios Cloud Run en todas las regiones..."
 
 for region in "${regions[@]}"; do
   services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null)
-  if [[ -n "$services" ]]; then
+  if [ -n "$services" ]; then
     while IFS= read -r svc; do
       [[ -n "$svc" ]] && service_array+=("$svc::$region")
     done <<< "$services"
   fi
 done
 
-if [[ ${#service_array[@]} -eq 0 ]]; then
-  handle_error "No se encontraron servicios Cloud Run en las regiones definidas."
+if [ ${#service_array[@]} -eq 0 ]; then
+  echo "❌ No se encontraron servicios Cloud Run en las regiones definidas."
+  exit 1
 fi
 
-echo -e "\n${GREEN}🟢 Servicios disponibles:${NC}"
+echo ""
+echo "🟢 Servicios disponibles:"
 for i in "${!service_array[@]}"; do
   svc_name="${service_array[$i]%%::*}"
   svc_region="${service_array[$i]##*::}"
   echo "$((i+1)). Servicio: $svc_name, Región: $svc_region"
 done
 
-read -rp $'\nSelecciona el número del servicio que quieres eliminar: ' service_index
+read -rp "Selecciona el número del servicio que quieres eliminar: " service_index
 if ! [[ "$service_index" =~ ^[0-9]+$ ]] || [ "$service_index" -lt 1 ] || [ "$service_index" -gt "${#service_array[@]}" ]; then
-  handle_error "Selección inválida."
+  echo "❌ Selección inválida."
+  exit 1
 fi
 
 selected="${service_array[$((service_index-1))]}"
 service_name="${selected%%::*}"
 region="${selected##*::}"
 
-echo -e "\n${CYAN}🔎 Detalles del servicio seleccionado:${NC}"
+echo ""
+echo "🔎 Detalles del servicio seleccionado:"
 echo "Nombre : $service_name"
 echo "Región : $region"
 
-echo -e "\n${CYAN}🔍 Buscando imágenes relacionadas en Container Registry...${NC}"
-images=$(gcloud container images list --format="value(NAME)" 2>/dev/null | grep "/$service_name$" || true)
+echo ""
+echo "🔍 Buscando imágenes relacionadas en Container Registry..."
+images=$(gcloud container images list --format="value(NAME)" 2>/dev/null | grep "/$service_name$")
 
-if [[ -z "$images" ]]; then
-  echo -e "${YELLOW}⚠️ No se encontraron imágenes relacionadas. Mostrando todas...${NC}"
+if [ -z "$images" ]; then
+  echo "⚠️ No se encontraron imágenes relacionadas. Mostrando todas..."
   images=$(gcloud container images list --format="value(NAME)" 2>/dev/null)
-  [[ -z "$images" ]] && handle_error "No hay imágenes disponibles."
+  [ -z "$images" ] && echo "❌ No hay imágenes disponibles." && exit 1
 fi
 
 IFS=$'\n' read -rd '' -a image_array <<< "$images"
 
-echo -e "\n${GREEN}🟢 Imágenes disponibles:${NC}"
+echo ""
+echo "🟢 Imágenes disponibles:"
 for i in "${!image_array[@]}"; do
   echo "$((i+1)). ${image_array[$i]}"
 done
 
-read -rp $'\nSelecciona el número de la imagen que quieres eliminar: ' image_index
+read -rp "Selecciona el número de la imagen que quieres eliminar: " image_index
 if ! [[ "$image_index" =~ ^[0-9]+$ ]] || [ "$image_index" -lt 1 ] || [ "$image_index" -gt "${#image_array[@]}" ]; then
-  handle_error "Selección inválida."
+  echo "❌ Selección inválida."
+  exit 1
 fi
 
 selected_image="${image_array[$((image_index-1))]}"
@@ -89,44 +77,40 @@ project_and_image="${selected_image#gcr.io/}"
 project_name="${project_and_image%%/*}"
 image_name="${project_and_image#*/}"
 
-echo -e "\n${GREEN}✅ Imagen seleccionada:${NC}"
+echo ""
+echo "✅ Imagen seleccionada:"
 echo "Proyecto : $project_name"
 echo "Imagen   : $image_name"
 
-# Obtener tag sin warnings
+# Obtener tag (silenciar advertencias)
 tag=$(gcloud container images list-tags "gcr.io/$project_name/$image_name" \
   --format='get(tags)' --limit=1 2>/dev/null | sed 's/,.*//' | tr -d '[:space:]')
 tag=${tag:-latest}
 
+# Construcción del identificador
 if [[ "$tag" =~ ^sha256: ]]; then
   image_ref="gcr.io/$project_name/$image_name@$tag"
 else
   image_ref="gcr.io/$project_name/$image_name:$tag"
 fi
 
-read -rp $'\n¿Deseas eliminar el servicio, la imagen y los archivos locales relacionados? (s/n): ' confirm
+read -rp "¿Deseas eliminar el servicio, la imagen y los archivos locales relacionados? (s/n): " confirm
 if [[ ! "$confirm" =~ ^[sS]$ ]]; then
-  echo -e "${YELLOW}❌ Operación cancelada por el usuario.${NC}"
-  exit 0
+  echo "❌ Operación cancelada por el usuario."
+  exit 1
 fi
 
-echo -e "\n${CYAN}🗑️ Eliminando servicio Cloud Run...${NC}"
-if ! gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet 2>/dev/null; then
-  echo -e "${YELLOW}⚠️ El servicio pudo no existir o hubo un problema al eliminar.${NC}"
-else
-  echo -e "${GREEN}Servicio eliminado correctamente.${NC}"
-fi
+echo ""
+echo "🗑️ Eliminando servicio Cloud Run..."
+gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet 2>/dev/null
 
-echo -e "\n${CYAN}🗑️ Eliminando imagen del contenedor...${NC}"
+echo ""
+echo "🗑️ Eliminando imagen del contenedor..."
 echo "🔗 Eliminando: $image_ref"
-# Usar --force-delete-tags para suprimir el warning y eliminar etiquetas asociadas
-if ! gcloud container images delete "$image_ref" --quiet --force-delete-tags 2>/dev/null; then
-  echo -e "${YELLOW}⚠️ Imagen no encontrada o ya eliminada.${NC}"
-else
-  echo -e "${GREEN}Imagen eliminada correctamente.${NC}"
-fi
+gcloud container images delete "$image_ref" --quiet 2>/dev/null || echo "⚠️ Imagen no encontrada o ya eliminada."
 
-echo -e "\n${CYAN}🧹 Eliminando archivos locales relacionados...${NC}"
+echo ""
+echo "🧹 Eliminando archivos locales relacionados..."
 files_to_delete=(
   "./script-v2ray.sh"
   "./script-v2ray-uninstall.sh"
@@ -141,4 +125,5 @@ for file in "${files_to_delete[@]}"; do
   fi
 done
 
-echo -e "\n${GREEN}✅ Proceso de desinstalación completado con éxito.${NC}"
+echo ""
+echo "✅ Proceso de desinstalación completado con éxito."
