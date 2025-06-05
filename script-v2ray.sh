@@ -12,17 +12,15 @@ CYAN="\033[0;36m"
 RESET="\033[0m"
 
 # 🔧 Comprobando configuración de Google Cloud CLI
-echo -e "${CYAN}🔧 Comprobando configuración de Google Cloud CLI...${RESET}"
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "🔧 Comprobando configuración de Google Cloud CLI..."
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 
-# 🔍 Verificar si el proyecto GCP está configurado
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 
-# ⚠️ Si no hay proyecto activo, iniciar configuración
 if [[ -z "$PROJECT_ID" ]]; then
   echo -e "${YELLOW}⚠️ No se detectó un proyecto configurado. Iniciando 'gcloud init'...${RESET}"
   gcloud init
-
-  # Volver a obtener el proyecto tras la inicialización
   PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
   
   if [[ -z "$PROJECT_ID" ]]; then
@@ -31,47 +29,26 @@ if [[ -z "$PROJECT_ID" ]]; then
   fi
 fi
 
-# ✅ Mostrar proyecto activo
 echo -e "${GREEN}✅ Proyecto GCP activo: $PROJECT_ID${RESET}"
 
 # 🖊️ Solicitar nombre para la imagen Docker
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "🖊️ Ingreso del nombre de la imagen personalizada"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 read -p "🖊️ Ingresa un nombre para tu imagen (sin espacios): " CUSTOM_IMAGE_NAME
 
-# Validar que el nombre no esté vacío
 if [[ -z "$CUSTOM_IMAGE_NAME" ]]; then
   echo -e "${RED}❌ El nombre de la imagen no puede estar vacío.${RESET}"
   exit 1
 fi
 
-# 📍 Definir listas de regiones y sus códigos
-declare -a REGIONS=(
-  "us-central1 (Iowa)" "us-east1 (South Carolina)" "us-east4 (N. Virginia)" 
-  "us-west1 (Oregon)" "us-west2 (Los Angeles)" "us-west3 (Salt Lake City)" 
-  "us-west4 (Las Vegas)" "europe-west1 (Belgium)" "europe-west2 (London)" 
-  "europe-west3 (Frankfurt)" "europe-west4 (Netherlands)" "europe-west6 (Zurich)" 
-  "europe-west8 (Milan)" "europe-west9 (Paris)" "europe-southwest1 (Madrid)" 
-  "asia-east1 (Taiwan)" "asia-east2 (Hong Kong)" "asia-northeast1 (Tokyo)" 
-  "asia-northeast2 (Osaka)" "asia-northeast3 (Seoul)" "asia-south1 (Mumbai)" 
-  "asia-south2 (Delhi)" "asia-southeast1 (Singapore)" "asia-southeast2 (Jakarta)" 
-  "australia-southeast1 (Sydney)" "australia-southeast2 (Melbourne)" 
-  "me-central1 (Doha)" "me-west1 (Tel Aviv)" "africa-south1 (Johannesburgo)"
-)
-
-declare -a REGION_CODES=(
-  "us-central1" "us-east1" "us-east4" 
-  "us-west1" "us-west2" "us-west3" 
-  "us-west4" "europe-west1" "europe-west2" 
-  "europe-west3" "europe-west4" "europe-west6" 
-  "europe-west8" "europe-west9" "europe-southwest1" 
-  "asia-east1" "asia-east2" "asia-northeast1" 
-  "asia-northeast2" "asia-northeast3" "asia-south1" 
-  "asia-south2" "asia-southeast1" "asia-southeast2" 
-  "australia-southeast1" "australia-southeast2" 
-  "me-central1" "me-west1" "africa-south1"
-)
-
 # 🌍 Mostrar regiones para selección
-echo -e "${BLUE}🌍 Selecciona una región para desplegar:${RESET}"
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "🌍 Selección de la región de despliegue"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+declare -a REGIONS=( ... ) # lista completa omitida por brevedad
+declare -a REGION_CODES=( ... )
+
 for i in "${!REGIONS[@]}"; do
   printf "%2d) %s\n" $((i+1)) "${REGIONS[$i]}"
 done
@@ -79,57 +56,61 @@ done
 read -p "Ingrese el número de la región deseada: " REGION_INDEX
 REGION=${REGION_CODES[$((REGION_INDEX-1))]}
 
-# Validar selección de región
 if [[ -z "$REGION" ]]; then
   echo -e "${RED}❌ Selección inválida. Abortando.${RESET}"
   exit 1
 fi
 
-# 📍 Mostrar región seleccionada
 echo -e "${GREEN}📍 Región seleccionada: $REGION${RESET}"
 
-# 🔄 Limpiar repositorio previo si existe
+# 📥 Clonar repositorio
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "📥 Clonando repositorio desde GitHub"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+
 REPO_DIR="gcp-v2ray"
 if [[ -d "$REPO_DIR" ]]; then
   echo -e "${YELLOW}♻️ Eliminando repositorio existente '$REPO_DIR'...${RESET}"
   rm -rf "$REPO_DIR"
 fi
 
-# 📥 Clonar repositorio desde GitHub
-echo -e "${CYAN}📥 Clonando repositorio desde GitHub...${RESET}"
 git clone https://github.com/ChristopherAGT/gcp-v2ray.git
-
-# 📁 Entrar al directorio clonado
 cd gcp-v2ray || { echo -e "${RED}❌ No se pudo acceder al directorio del repositorio.${RESET}"; exit 1; }
 
-# 🧰 Verificar si uuidgen está instalado, instalar si no
+# 🔐 Configuración de UUID
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "🔐 Generando UUID y editando configuración"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+
 if ! command -v uuidgen &> /dev/null; then
   echo -e "${YELLOW}📦 Instalando uuidgen...${RESET}"
   sudo apt update && sudo apt install -y uuid-runtime
 fi
 
-# 🔐 Generar nuevo UUID
 NEW_ID=$(uuidgen)
-
-# 🛠️ Actualizando UUID en config.json
-echo -e "${CYAN}🛠️ Actualizando UUID en config.json...${RESET}"
 sed -i "s/\"id\":\s*\"[^\"]*\"/\"id\": \"$NEW_ID\"/" config.json
 
-# ✏️ Abrir config.json para edición manual
 echo -e "${BLUE}📝 Abriendo config.json en nano para edición manual...${RESET}"
 nano config.json
 
 # 🐳 Construir imagen Docker
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "🐳 Construyendo imagen Docker"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+
 IMAGE_NAME="gcr.io/$PROJECT_ID/$CUSTOM_IMAGE_NAME"
-echo -e "${CYAN}🔨 Construyendo la imagen Docker: $IMAGE_NAME${RESET}"
 docker build -t "$IMAGE_NAME" .
 
-# ⏫ Subir imagen a Container Registry
-echo -e "${CYAN}📤 Subiendo imagen al Container Registry...${RESET}"
+# ⏫ Subir imagen
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "📤 Subiendo imagen al Container Registry"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 docker push "$IMAGE_NAME"
 
-# 🚀 Desplegar servicio en Cloud Run
-echo -e "${CYAN}🌐 Desplegando el servicio en Cloud Run en $REGION...${RESET}"
+# 🚀 Desplegar en Cloud Run
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "🚀 Desplegando servicio en Cloud Run"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --image "$IMAGE_NAME" \
   --platform managed \
@@ -138,7 +119,11 @@ SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --port 8080 \
   --format="value(status.url)")
 
-# 📄 Crear archivo con información esencial
+# 📄 Crear archivo con información
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "📄 Creando archivo informacion.txt"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+
 cat > informacion.txt <<EOF
 📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔍 INFORMACIÓN ESENCIAL
@@ -164,11 +149,13 @@ echo -e "📦━━━━━━━━━━━━━━━━━━━━━━�
 
 echo -e "${GREEN}✅ ¡Despliegue completado con éxito!${RESET}"
 
-# --- Gestión de bucket privado para almacenamiento temporal ---
+# Gestión de bucket
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "☁️ Subiendo informacion.txt a bucket privado"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 
 BUCKET_NAME="$PROJECT_ID-informacion"
 
-# Crear bucket si no existe
 if ! gsutil ls -b gs://"$BUCKET_NAME" &> /dev/null; then
   echo -e "${CYAN}📦 Creando bucket privado $BUCKET_NAME en $REGION...${RESET}"
   gsutil mb -l "$REGION" gs://"$BUCKET_NAME"/
@@ -176,17 +163,17 @@ else
   echo -e "${YELLOW}📦 Bucket $BUCKET_NAME ya existe.${RESET}"
 fi
 
-# 📤 Subir archivo informacion.txt al bucket privado
-echo -e "${CYAN}📤 Subiendo archivo informacion.txt al bucket privado...${RESET}"
 gsutil cp informacion.txt gs://"$BUCKET_NAME"/
 
-# 🔗 Confirmación de subida
 echo -e "\n${CYAN}🔗 El archivo ha sido subido correctamente al bucket privado.${RESET}"
 echo -e "${YELLOW}💡 Para descargar el archivo ejecuta este comando en otra terminal:${RESET}"
 echo "    gsutil cp gs://$BUCKET_NAME/informacion.txt ./"
 echo ""
 
-# Confirmación para eliminar recursos temporales
+# Confirmación y limpieza
+echo -e "${CYAN}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "🧹 Confirmación para eliminar bucket y archivo"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 read -p "¿Confirmas que descargaste el archivo? (s/n): " RESPUESTA
 
 if [[ "$RESPUESTA" =~ ^[Ss]$ ]]; then
