@@ -30,48 +30,76 @@ if [ -z "$region" ]; then
   echo "❌ No se pudo determinar la región del servicio."
   exit 1
 fi
-
 echo "Región detectada: $region"
 
-echo -e "\n🔍 Buscando imágenes relacionadas en Container Registry..."
+# Obtener imagen(s) asociadas al servicio
+echo -e "\n🔍 Buscando imagen(es) asociada(s) al servicio..."
 
-# Listar imágenes que contengan el nombre del servicio para facilitar selección
-images=$(gcloud container images list --format="value(NAME)" | grep "$service_name")
+# Listar revisiones y obtener la imagen usada en cada revisión
+images=()
+revisions=$(gcloud run revisions list --service="$service_name" --platform=managed --region="$region" --format="value(spec.containers[0].image)")
+if [ -z "$revisions" ]; then
+  echo "⚠️ No se encontraron imágenes asociadas al servicio."
+else
+  IFS=$'\n' read -rd '' -a images <<<"$revisions"
+fi
 
-if [ -z "$images" ]; then
-  echo "⚠️ No se encontraron imágenes relacionadas con el servicio '$service_name'."
-  echo "Obteniendo lista completa de imágenes..."
+if [ ${#images[@]} -eq 0 ]; then
+  echo "⚠️ No se detectaron imágenes. Listando imágenes relacionadas por nombre del servicio..."
 
-  images=$(gcloud container images list --format="value(NAME)")
-  if [ -z "$images" ]; then
-    echo "❌ No se encontraron imágenes en Container Registry."
-    exit 1
+  images_raw=$(gcloud container images list --format="value(NAME)" | grep "$service_name")
+
+  if [ -z "$images_raw" ]; then
+    echo "❌ No se encontraron imágenes en Container Registry relacionadas."
+  else
+    IFS=$'\n' read -rd '' -a images <<<"$images_raw"
   fi
 fi
 
-echo "🟢 Imágenes disponibles:"
-IFS=$'\n' read -rd '' -a image_array <<<"$images"
-for i in "${!image_array[@]}"; do
-  echo "$((i+1)). ${image_array[$i]}"
-done
+if [ ${#images[@]} -eq 0 ]; then
+  echo "❌ No se encontraron imágenes para eliminar."
+else
+  echo "🟢 Imágenes encontradas:"
+  for i in "${!images[@]}"; do
+    echo "$((i+1)). ${images[$i]}"
+  done
 
-# Selección de la imagen
-read -p "Selecciona el número de la imagen que quieres eliminar: " image_index
-if ! [[ "$image_index" =~ ^[0-9]+$ ]] || [ "$image_index" -lt 1 ] || [ "$image_index" -gt "${#image_array[@]}" ]; then
-  echo "❌ Selección inválida."
-  exit 1
+  read -p "Selecciona el número de la imagen que quieres eliminar (o presiona Enter para eliminar todas): " img_index
+
+  images_to_delete=()
+  if [[ -z "$img_index" ]]; then
+    images_to_delete=("${images[@]}")
+  else
+    if ! [[ "$img_index" =~ ^[0-9]+$ ]] || [ "$img_index" -lt 1 ] || [ "$img_index" -gt "${#images[@]}" ]; then
+      echo "❌ Selección inválida."
+      exit 1
+    fi
+    images_to_delete=("${images[$((img_index-1))]}")
+  fi
 fi
 
-selected_image="${image_array[$((image_index-1))]}"
-project_name=$(echo "$selected_image" | cut -d'/' -f2)
-image_name=$(echo "$selected_image" | cut -d'/' -f3)
+# Detectar repositorios a partir de imágenes (asumiendo gcr.io o region-docker.pkg.dev)
+repositories=()
+for img in "${images_to_delete[@]}"; do
+  # Extraer repo según el formato
+  if [[ "$img" =~ ^gcr.io/([^/]+)/([^:@]+) ]]; then
+    repositories+=("gcr.io/${BASH_REMATCH[1]}")
+  elif [[ "$img" =~ ^([a-z0-9-]+)-docker.pkg.dev/([^/]+)/([^/]+)/([^:@]+) ]]; then
+    repo="${BASH_REMATCH[1]}-docker.pkg.dev/${BASH_REMATCH[2]}/${BASH_REMATCH[3]}"
+    repositories+=("$repo")
+  fi
+done
 
-echo -e "\n✅ Imagen seleccionada:"
-echo "Proyecto: $project_name"
-echo "Imagen: $image_name"
+# Eliminar duplicados en repositorios
+repositories=($(echo "${repositories[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+echo -e "\nRepositorios detectados para posible eliminación:"
+for repo in "${repositories[@]}"; do
+  echo " - $repo"
+done
 
 # Confirmación final
-read -p $'\n¿Deseas eliminar el servicio, la imagen y los archivos locales relacionados? (s/n): ' confirm
+read -p $'\n¿Deseas eliminar el servicio, las imágenes seleccionadas y los repositorios detectados? (s/n): ' confirm
 if [[ "$confirm" != [sS] ]]; then
   echo "❌ Operación cancelada."
   exit 1
@@ -80,15 +108,32 @@ fi
 echo -e "\n🗑️ Eliminando servicio Cloud Run..."
 gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet
 
-echo "🗑️ Eliminando imagen del contenedor..."
-gcloud container images delete "gcr.io/$project_name/$image_name" --quiet
+if [ ${#images_to_delete[@]} -gt 0 ]; then
+  for img in "${images_to_delete[@]}"; do
+    echo "🗑️ Eliminando imagen: $img"
+    gcloud container images delete "$img" --quiet --force-delete-tags || \
+    gcloud artifacts docker images delete "$img" --quiet --delete-tags || \
+    echo "⚠️ No se pudo eliminar la imagen $img con gcloud container images ni artifacts."
+  done
+fi
+
+# Opción para eliminar repositorios (solo si quieres)
+read -p $'\n¿Quieres eliminar los repositorios detectados? Esto puede afectar otros recursos. (s/n): ' del_repos
+if [[ "$del_repos" == [sS] ]]; then
+  for repo in "${repositories[@]}"; do
+    echo "🗑️ Eliminando repositorio: $repo"
+    # Para Artifact Registry, eliminar repositorio puede requerir permisos y cuidado, ejemplo:
+    # gcloud artifacts repositories delete "$repo" --location="$region" --quiet
+    echo "⚠️ No se implementó eliminación automática de repositorios, debes hacerlo manualmente si es necesario."
+  done
+fi
 
 echo "🧹 Eliminando archivos locales relacionados..."
 
 files_to_delete=(
   "./script-v2ray.sh"
   "./script-v2ray-uninstall.sh"
-  # Agrega más archivos o rutas si los conoces
+  # Agrega más archivos o rutas si las conoces
 )
 
 for file in "${files_to_delete[@]}"; do
