@@ -1,7 +1,10 @@
 #!/bin/bash
+
+# 🛑 Detener el script si ocurre un error
 set -e
 
 echo "🔧 Inicializando Google Cloud CLI..."
+
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
 
 if [[ -z "$PROJECT_ID" ]]; then
@@ -18,6 +21,7 @@ echo "✅ Proyecto activo: $PROJECT_ID"
 
 echo "📥 Clonando el repositorio..."
 git clone https://github.com/ChristopherAGT/gcp-v2ray.git
+
 cd gcp-v2ray || { echo "❌ No se pudo acceder al directorio del repositorio."; exit 1; }
 
 if ! command -v uuidgen &> /dev/null; then
@@ -48,11 +52,12 @@ DEPLOY_OUTPUT=$(gcloud run deploy vless-ws \
   --allow-unauthenticated \
   --port 8080)
 
-# Extraer la línea con el Service URL (primera URL oficial que imprime gcloud)
-SERVICE_URL=$(echo "$DEPLOY_OUTPUT" | grep -Eo 'https://[a-zA-Z0-9.-]+\.run\.app' | head -n 1)
+# Extraer las URLs (puede haber varias)
+URLS=($(echo "$DEPLOY_OUTPUT" | grep -Eo 'https://[a-zA-Z0-9.-]+\.run\.app'))
 
-# Extra adicional: si hay otra URL distinta, capturarla también
-SECOND_URL=$(echo "$DEPLOY_OUTPUT" | grep -Eo 'https://[a-zA-Z0-9.-]+\.run\.app' | sed -n 2p)
+# Asignar las URLs encontradas
+DOMAIN_1="${URLS[0]:-No detectado}"
+DOMAIN_2="${URLS[1]:-No detectado}"
 
 echo ""
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -60,8 +65,8 @@ echo "🔍 INFORMACIÓN ESENCIAL"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📛 Nombre de la Imagen : $IMAGE_NAME"
 echo "🆔 UUID Generado       : $NEW_ID"
-echo "🌐 Dominio Google 1    : ${SERVICE_URL:-No detectado}"
-echo "🌐 Dominio Google 2    : ${SECOND_URL:-No detectado}"
+echo "🌐 Dominio Google 1    : $DOMAIN_1"
+echo "🌐 Dominio Google 2    : $DOMAIN_2"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "✅ ¡Despliegue completado con éxito!"
