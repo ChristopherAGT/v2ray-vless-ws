@@ -64,4 +64,24 @@ echo "🗑️ Eliminando servicio Cloud Run..."
 gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet
 
 echo "🗑️ Eliminando imagen del contenedor..."
-gcloud container images delete "gcr.io
+gcloud container images delete "gcr.io/$project_name/$image_name" --quiet
+
+# Eliminar scripts y archivos locales relacionados
+echo "🧹 Eliminando scripts y archivos locales relacionados..."
+
+files_to_delete=(
+  "./script-v2ray.sh"
+  "./script-v2ray-uninstall.sh"
+  # Puedes agregar más archivos si los tienes
+)
+
+for file in "${files_to_delete[@]}"; do
+  if [ -f "$file" ]; then
+    echo "🗑️ Eliminando archivo $file"
+    rm -f "$file"
+  else
+    echo "ℹ️ Archivo $file no encontrado, saltando."
+  fi
+done
+
+echo "✅ Limpieza completada."
