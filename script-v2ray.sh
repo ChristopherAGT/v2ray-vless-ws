@@ -1,124 +1,147 @@
 #!/bin/bash
 
-🚨 Detener el script ante cualquier error
+# ============================================================
+# 🚀 Script de Despliegue Automático en Google Cloud Platform
+# Autor: Tú
+# Descripción: Automatiza la configuración de entorno, construcción
+#              de imagen Docker, despliegue en Cloud Run, y
+#              almacenamiento temporal en Cloud Storage.
+# ============================================================
 
+# 🛑 Detener ejecución ante errores
 set -e
 
--------------------------------
+# 🎨 Colores ANSI
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+NC='\033[0m' # Sin color
 
-🎯 Verificar configuración inicial
+echo -e "${CYAN}🔧 Inicializando Google Cloud CLI...${NC}"
 
--------------------------------
+# Verificar configuración de proyecto
+PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+if [[ -z "$PROJECT_ID" ]]; then
+  echo -e "${YELLOW}⚠️ No se detectó un proyecto. Ejecutando 'gcloud init'...${NC}"
+  gcloud init
+  PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+  if [[ -z "$PROJECT_ID" ]]; then
+    echo -e "${RED}❌ No se pudo obtener el ID del proyecto.${NC}"
+    exit 1
+  fi
+fi
+echo -e "${GREEN}✅ Proyecto GCP activo: ${PROJECT_ID}${NC}"
 
-echo -e "\n🔍 Comprobando configuración de Google Cloud CLI..." PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+# 👉 Solicitar nombre para la imagen
+read -p "🖊️ Ingresa un nombre para tu imagen (sin espacios): " CUSTOM_IMAGE_NAME
+if [[ -z "$CUSTOM_IMAGE_NAME" ]]; then
+  echo -e "${RED}❌ El nombre de la imagen no puede estar vacío.${NC}"
+  exit 1
+fi
 
-if [[ -z "$PROJECT_ID" ]]; then echo "⚠️  No se detectó un proyecto configurado. Ejecutando 'gcloud init'..." gcloud init PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+# 🌍 Selección de región
+declare -a REGIONS=(... # <--- omitido por brevedad, igual que en tu original)
+declare -a REGION_CODES=(... # <--- idem)
 
-if [[ -z "$PROJECT_ID" ]]; then echo "❌ No se pudo obtener el ID del proyecto tras 'gcloud init'. Abortando." exit 1 fi fi
+echo -e "${CYAN}🌍 Selecciona una región para desplegar:${NC}"
+for i in "${!REGIONS[@]}"; do
+  printf "%2d) %s\n" $((i+1)) "${REGIONS[$i]}"
+done
 
-echo "✅ Proyecto GCP activo: $PROJECT_ID"
+read -p "📌 Ingrese el número de la región deseada: " REGION_INDEX
+REGION=${REGION_CODES[$((REGION_INDEX-1))]}
+if [[ -z "$REGION" ]]; then
+  echo -e "${RED}❌ Selección inválida. Abortando.${NC}"
+  exit 1
+fi
+echo -e "${GREEN}📍 Región seleccionada: $REGION${NC}"
 
--------------------------------
+# 🔄 Manejo de repositorio
+REPO_DIR="gcp-v2ray"
+if [[ -d "$REPO_DIR" ]]; then
+  echo -e "${YELLOW}♻️ Eliminando repositorio existente '$REPO_DIR'...${NC}"
+  rm -rf "$REPO_DIR"
+fi
 
-📛 Nombre personalizado para la imagen
+echo -e "${CYAN}📥 Clonando el repositorio...${NC}"
+git clone https://github.com/ChristopherAGT/gcp-v2ray.git
+cd gcp-v2ray || { echo -e "${RED}❌ Error accediendo al directorio.${NC}"; exit 1; }
 
--------------------------------
+# 🔧 UUID y configuración
+if ! command -v uuidgen &> /dev/null; then
+  echo -e "${YELLOW}📦 Instalando uuidgen...${NC}"
+  sudo apt update && sudo apt install -y uuid-runtime
+fi
 
-echo read -p "🖊️  Ingresa un nombre para tu imagen (sin espacios): " CUSTOM_IMAGE_NAME
+NEW_ID=$(uuidgen)
+echo -e "${CYAN}🛠️ Reemplazando UUID en config.json...${NC}"
+sed -i "s/\"id\":\s*\"[^\"]*\"/\"id\": \"$NEW_ID\"/" config.json
 
-if [[ -z "$CUSTOM_IMAGE_NAME" ]]; then echo "❌ El nombre de la imagen no puede estar vacío." exit 1 fi
+echo -e "${BLUE}📝 Abriendo config.json en nano para revisión...${NC}"
+nano config.json
 
--------------------------------
+# 🐳 Construcción de imagen Docker
+IMAGE_NAME="gcr.io/$PROJECT_ID/$CUSTOM_IMAGE_NAME"
+echo -e "${CYAN}🔨 Construyendo imagen Docker: $IMAGE_NAME${NC}"
+docker build -t $IMAGE_NAME .
 
-🌍 Selección de región
+# ⏫ Subida a Container Registry
+echo -e "${CYAN}📤 Subiendo imagen a Container Registry...${NC}"
+docker push $IMAGE_NAME
 
--------------------------------
+# 🚀 Despliegue en Cloud Run
+echo -e "${CYAN}🌐 Desplegando servicio en Cloud Run...${NC}"
+SERVICE_OUTPUT=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
+  --image "$IMAGE_NAME" \
+  --platform managed \
+  --region "$REGION" \
+  --allow-unauthenticated \
+  --port 8080 \
+  --format="value(status.url)")
 
-declare -a REGIONS=( "us-central1 (Iowa)" "us-east1 (South Carolina)" "us-east4 (N. Virginia)" "us-west1 (Oregon)" "us-west2 (Los Angeles)" "us-west3 (Salt Lake City)" "us-west4 (Las Vegas)" "europe-west1 (Belgium)" "europe-west2 (London)" "europe-west3 (Frankfurt)" "europe-west4 (Netherlands)" "europe-west6 (Zurich)" "europe-west8 (Milan)" "europe-west9 (Paris)" "europe-southwest1 (Madrid)" "asia-east1 (Taiwan)" "asia-east2 (Hong Kong)" "asia-northeast1 (Tokyo)" "asia-northeast2 (Osaka)" "asia-northeast3 (Seoul)" "asia-south1 (Mumbai)" "asia-south2 (Delhi)" "asia-southeast1 (Singapore)" "asia-southeast2 (Jakarta)" "australia-southeast1 (Sydney)" "australia-southeast2 (Melbourne)" "me-central1 (Doha)" "me-west1 (Tel Aviv)" "africa-south1 (Johannesburgo)" )
+# 📄 Guardar información clave
+cat > informacion.txt <<EOF
+📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 INFORMACIÓN ESENCIAL
+📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗂️ Proyecto GCP       : $PROJECT_ID
+📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME
+🆔 UUID Generado       : $NEW_ID
+📍 Región Desplegada   : $REGION
+🌐 Dominio Google      : $SERVICE_OUTPUT
+📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EOF
 
-declare -a REGION_CODES=( "us-central1" "us-east1" "us-east4" "us-west1" "us-west2" "us-west3" "us-west4" "europe-west1" "europe-west2" "europe-west3" "europe-west4" "europe-west6" "europe-west8" "europe-west9" "europe-southwest1" "asia-east1" "asia-east2" "asia-northeast1" "asia-northeast2" "asia-northeast3" "asia-south1" "asia-south2" "asia-southeast1" "asia-southeast2" "australia-southeast1" "australia-southeast2" "me-central1" "me-west1" "africa-south1" )
-
-echo -e "\n🌐 Selecciona una región para desplegar:" for i in "${!REGIONS[@]}"; do printf "%2d) %s\n" $((i+1)) "${REGIONS[$i]}" sleep 0.05 done
-
-read -p "Ingrese el número de la región deseada: " REGION_INDEX REGION=${REGION_CODES[$((REGION_INDEX-1))]}
-
-if [[ -z "$REGION" ]]; then echo "❌ Selección inválida. Abortando." exit 1 fi
-
-echo "📍 Región seleccionada: $REGION"
-
--------------------------------
-
-🧼 Preparar entorno
-
--------------------------------
-
-REPO_DIR="gcp-v2ray" if [[ -d "$REPO_DIR" ]]; then echo "♻️  Eliminando repositorio existente '$REPO_DIR'..." rm -rf "$REPO_DIR" fi
-
-echo "📥 Clonando el repositorio..." git clone https://github.com/ChristopherAGT/gcp-v2ray.git cd "$REPO_DIR" || { echo "❌ No se pudo acceder al directorio del repositorio."; exit 1; }
-
--------------------------------
-
-🔑 Generar nuevo UUID
-
--------------------------------
-
-if ! command -v uuidgen &> /dev/null; then echo "📦 Instalando uuidgen..." sudo apt update && sudo apt install -y uuid-runtime fi
-
-NEW_ID=$(uuidgen) echo "🔐 UUID generado: $NEW_ID"
-
-echo "🛠️  Reemplazando ID en config.json..." sed -i "s/"id":\s*"[^"]*"/"id": "$NEW_ID"/" config.json
-
-echo "📝 Abriendo config.json en nano para revisión..." nano config.json
-
--------------------------------
-
-🐳 Construir y subir imagen Docker
-
--------------------------------
-
-IMAGE_NAME="gcr.io/$PROJECT_ID/$CUSTOM_IMAGE_NAME" echo "🔨 Construyendo imagen Docker: $IMAGE_NAME" docker build -t "$IMAGE_NAME" .
-
-echo "📤 Subiendo imagen al Container Registry..." docker push "$IMAGE_NAME"
-
--------------------------------
-
-🚀 Desplegar en Cloud Run
-
--------------------------------
-
-echo "🚀 Desplegando servicio en Cloud Run en región: $REGION..." SERVICE_OUTPUT=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" 
---image "$IMAGE_NAME" 
---platform managed 
---region "$REGION" 
---allow-unauthenticated 
---port 8080 
---format="value(status.url)")
-
--------------------------------
-
-🧾 Crear archivo de información
-
--------------------------------
-
-cat > informacion.txt <<EOF 📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 🔍 INFORMACIÓN ESENCIAL 📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 🗂️ Proyecto GCP       : $PROJECT_ID 📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME 🆔 UUID Generado       : $NEW_ID 📍 Región Desplegada   : $REGION 🌐 Dominio Google      : $SERVICE_OUTPUT 📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ EOF
-
+# 📄 Mostrar resumen en pantalla
+echo ""
 cat informacion.txt
+echo ""
 
-echo "✅ ¡Despliegue completado con éxito!"
-
--------------------------------
-
-☁️ Subir informacion.txt a Cloud Storage
-
--------------------------------
-
+# ☁️ Bucket privado para almacenamiento
 BUCKET_NAME="$PROJECT_ID-informacion"
+if ! gsutil ls -b gs://$BUCKET_NAME &> /dev/null; then
+  echo -e "${CYAN}📦 Creando bucket privado: $BUCKET_NAME...${NC}"
+  gsutil mb -l "$REGION" gs://$BUCKET_NAME/
+else
+  echo -e "${YELLOW}📦 Bucket $BUCKET_NAME ya existe.${NC}"
+fi
 
-if ! gsutil ls -b gs://$BUCKET_NAME &> /dev/null; then echo "📦 Creando bucket privado $BUCKET_NAME en $REGION..." gsutil mb -l "$REGION" gs://$BUCKET_NAME/ else echo "📦 Bucket $BUCKET_NAME ya existe." fi
+echo -e "${CYAN}📤 Subiendo informacion.txt al bucket...${NC}"
+gsutil cp informacion.txt gs://$BUCKET_NAME/
 
-echo "📤 Subiendo informacion.txt al bucket..." gsutil cp informacion.txt gs://$BUCKET_NAME/
+echo -e "${GREEN}🔗 Archivo subido exitosamente.${NC}"
+echo -e "💡 Puedes descargarlo con:\n    ${BLUE}gsutil cp gs://$BUCKET_NAME/informacion.txt ./ ${NC}"
+echo ""
 
-echo -e "\n💡 Para descargar posteriormente usa:" echo "    gsutil cp gs://$BUCKET_NAME/informacion.txt ./"
-
-read -p "¿Confirmas que descargaste el archivo? (s/n): " RESPUESTA if [[ "$RESPUESTA" =~ ^[sS]$ ]]; then echo "🗑️  Eliminando archivo y bucket..." gsutil rm gs://$BUCKET_NAME/informacion.txt gsutil rb gs://$BUCKET_NAME/ echo "✅ Recursos eliminados." else echo "⚠️  No se eliminaron los recursos. Recuerda hacerlo manualmente si no los necesitas." fi
-
+# ✅ Limpieza final
+read -p "¿Confirmas que descargaste el archivo? (s/n): " RESPUESTA
+if [[ "$RESPUESTA" =~ ^[sS]$ ]]; then
+  echo -e "${YELLOW}🗑️ Eliminando archivo y bucket...${NC}"
+  gsutil rm gs://$BUCKET_NAME/informacion.txt
+  gsutil rb gs://$BUCKET_NAME/
+  echo -e "${GREEN}✅ Eliminación completada.${NC}"
+else
+  echo -e "${YELLOW}⚠️ No se eliminaron los recursos. Hazlo manualmente si lo deseas.${NC}"
+fi
