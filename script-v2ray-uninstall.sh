@@ -31,7 +31,7 @@ declare -a service_array
 echo -e "${CYAN}🔍 Buscando servicios Cloud Run en todas las regiones...${NC}"
 
 for region in "${regions[@]}"; do
-  services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null)
+  services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)")
   if [[ -n "$services" ]]; then
     while IFS= read -r svc; do
       [[ -n "$svc" ]] && service_array+=("$svc::$region")
@@ -64,11 +64,11 @@ echo "Nombre : $service_name"
 echo "Región : $region"
 
 echo -e "\n${CYAN}🔍 Buscando imágenes relacionadas en Container Registry...${NC}"
-images=$(gcloud container images list --format="value(NAME)" 2>/dev/null | grep "/$service_name$" || true)
+images=$(gcloud container images list --format="value(NAME)" | grep "/$service_name$" || true)
 
 if [[ -z "$images" ]]; then
   echo -e "${YELLOW}⚠️ No se encontraron imágenes relacionadas. Mostrando todas...${NC}"
-  images=$(gcloud container images list --format="value(NAME)" 2>/dev/null)
+  images=$(gcloud container images list --format="value(NAME)")
   [[ -z "$images" ]] && handle_error "No hay imágenes disponibles."
 fi
 
@@ -93,15 +93,18 @@ echo -e "\n${GREEN}✅ Imagen seleccionada:${NC}"
 echo "Proyecto : $project_name"
 echo "Imagen   : $image_name"
 
-# Obtener tag sin warnings
-tag=$(gcloud container images list-tags "gcr.io/$project_name/$image_name" \
-  --format='get(tags)' --limit=1 2>/dev/null | sed 's/,.*//' | tr -d '[:space:]')
-tag=${tag:-latest}
+# Obtener digest SHA256 para evitar warnings
+digest=$(gcloud container images list-tags "gcr.io/$project_name/$image_name" --format='get(digest)' --limit=1 --filter='tags:*' | head -n 1)
 
-if [[ "$tag" =~ ^sha256: ]]; then
-  image_ref="gcr.io/$project_name/$image_name@$tag"
+if [[ -z "$digest" ]]; then
+  # Si no hay digest, fallback a latest tag (menos recomendado)
+  digest="latest"
+fi
+
+if [[ "$digest" == "latest" ]]; then
+  image_ref="gcr.io/$project_name/$image_name:latest"
 else
-  image_ref="gcr.io/$project_name/$image_name:$tag"
+  image_ref="gcr.io/$project_name/$image_name@$digest"
 fi
 
 read -rp $'\n¿Deseas eliminar el servicio, la imagen y los archivos locales relacionados? (s/n): ' confirm
@@ -111,7 +114,7 @@ if [[ ! "$confirm" =~ ^[sS]$ ]]; then
 fi
 
 echo -e "\n${CYAN}🗑️ Eliminando servicio Cloud Run...${NC}"
-if ! gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet 2>/dev/null; then
+if ! gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet; then
   echo -e "${YELLOW}⚠️ El servicio pudo no existir o hubo un problema al eliminar.${NC}"
 else
   echo -e "${GREEN}Servicio eliminado correctamente.${NC}"
@@ -119,8 +122,7 @@ fi
 
 echo -e "\n${CYAN}🗑️ Eliminando imagen del contenedor...${NC}"
 echo "🔗 Eliminando: $image_ref"
-# Usar --force-delete-tags para suprimir el warning y eliminar etiquetas asociadas
-if ! gcloud container images delete "$image_ref" --quiet --force-delete-tags 2>/dev/null; then
+if ! gcloud container images delete "$image_ref" --quiet; then
   echo -e "${YELLOW}⚠️ Imagen no encontrada o ya eliminada.${NC}"
 else
   echo -e "${GREEN}Imagen eliminada correctamente.${NC}"
