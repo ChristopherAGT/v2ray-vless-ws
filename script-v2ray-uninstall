@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# -------- CONFIGURACIÓN --------
+PROJECT_ID=$(gcloud config get-value project)
+
+# -------- MOSTRAR SERVICIOS DISPONIBLES EN CLOUD RUN --------
+echo "🔍 Listando servicios disponibles en Cloud Run:"
+SERVICES=$(gcloud run services list --platform=managed --format="value(metadata.name)")
+
+if [[ -z "$SERVICES" ]]; then
+    echo "❌ No hay servicios de Cloud Run en este proyecto."
+else
+    echo "✅ Servicios encontrados:"
+    select SERVICE in $SERVICES; do
+        if [[ -n "$SERVICE" ]]; then
+            # Obtener la región del servicio seleccionado
+            REGION=$(gcloud run services describe "$SERVICE" --platform=managed --format="value(metadata.annotations['run.googleapis.com/region'])")
+            
+            if [[ -z "$REGION" ]]; then
+                echo "❌ No se pudo detectar la región del servicio $SERVICE. Abortando."
+                exit 1
+            fi
+
+            echo "📍 Región detectada: $REGION"
+            echo "🗑 Eliminando servicio: $SERVICE"
+            gcloud run services delete "$SERVICE" --platform=managed --region="$REGION" --quiet
+            break
+        else
+            echo "⚠ Opción inválida. Intenta de nuevo."
+        fi
+    done
+fi
+
+# -------- MOSTRAR IMÁGENES DISPONIBLES --------
+echo ""
+echo "🖼 Listando imágenes en Container Registry:"
+IMAGES=$(gcloud container images list --repository=gcr.io/$PROJECT_ID --format="value(NAME)")
+
+if [[ -z "$IMAGES" ]]; then
+    echo "❌ No se encontraron imágenes en Container Registry."
+else
+    echo "✅ Imágenes encontradas:"
+    select IMAGE in $IMAGES; do
+        if [[ -n "$IMAGE" ]]; then
+            echo "🗑 Eliminando imagen: $IMAGE"
+            gcloud container images delete "$IMAGE" --quiet --force-delete-tags
+            break
+        else
+            echo "⚠ Opción inválida. Intenta de nuevo."
+        fi
+    done
+fi
+
+# -------- ELIMINAR SCRIPT DESCARGADO --------
+echo ""
+if [[ -f "script-v2ray.sh" ]]; then
+    echo "🧹 Eliminando script script-v2ray.sh..."
+    rm script-v2ray.sh
+else
+    echo "ℹ No se encontró script-v2ray.sh para eliminar."
+fi
+
+echo ""
+echo "✅ Limpieza completada."
