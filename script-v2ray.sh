@@ -24,6 +24,15 @@ fi
 
 echo "✅ Proyecto activo: $PROJECT_ID"
 
+# 👉 Solicitar al usuario un nombre personalizado para la imagen
+read -p "🖊️ Ingresa un nombre para tu imagen (sin espacios): " CUSTOM_IMAGE_NAME
+
+# Validar nombre no vacío
+if [[ -z "$CUSTOM_IMAGE_NAME" ]]; then
+  echo "❌ El nombre de la imagen no puede estar vacío."
+  exit 1
+fi
+
 # 🔄 Clonar el repositorio
 echo "📥 Clonando el repositorio..."
 git clone https://github.com/ChristopherAGT/gcp-v2ray.git
@@ -49,18 +58,18 @@ echo "📝 Abriendo config.json en nano. Guarda y cierra el archivo para continu
 nano config.json
 
 # 🐳 Construir la imagen de Docker
-IMAGE_NAME="gcr.io/$PROJECT_ID/vless-ws"
-echo "🔨 Construyendo la imagen Docker..."
+IMAGE_NAME="gcr.io/$PROJECT_ID/$CUSTOM_IMAGE_NAME"
+echo "🔨 Construyendo la imagen Docker con nombre: $IMAGE_NAME"
 docker build -t $IMAGE_NAME .
 
 # ⏫ Subir la imagen al Container Registry
 echo "📤 Subiendo la imagen al Container Registry..."
 docker push $IMAGE_NAME
 
-# 🚀 Desplegar el servicio en Cloud Run
+# 🚀 Desplegar el servicio en Cloud Run usando el nombre como nombre del servicio
 echo "🌐 Desplegando el servicio en Cloud Run..."
-SERVICE_OUTPUT=$(gcloud run deploy vless-ws \
-  --image $IMAGE_NAME \
+SERVICE_OUTPUT=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
+  --image "$IMAGE_NAME" \
   --platform managed \
   --region us-east1 \
   --allow-unauthenticated \
