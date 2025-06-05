@@ -77,23 +77,44 @@ else
   images_to_delete=("${images[$((image_index-1))]}")
 fi
 
-# Detectar repositorios para mostrar (no elimina automáticamente)
-repositories=()
+# Detectar repositorios Artifact Registry (nombre y región)
+declare -A artifact_repos  # clave=repo, valor=region
+
+echo -e "\n🔍 Detectando repositorios Artifact Registry relacionados..."
+
 for img in "${images_to_delete[@]}"; do
-  if [[ "$img" =~ ^gcr.io/([^/]+)/([^:@]+) ]]; then
-    repositories+=("gcr.io/${BASH_REMATCH[1]}")
-  elif [[ "$img" =~ ^([a-z0-9-]+)-docker.pkg.dev/([^/]+)/([^/]+)/([^:@]+) ]]; then
-    repo="${BASH_REMATCH[1]}-docker.pkg.dev/${BASH_REMATCH[2]}/${BASH_REMATCH[3]}"
-    repositories+=("$repo")
+  # Ejemplo repo Artifact Registry:
+  # us-central1-docker.pkg.dev/my-project/my-repo/my-image
+  if [[ "$img" =~ ^([a-z0-9-]+)-docker.pkg.dev/([^/]+)/([^/]+)/.+$ ]]; then
+    repo_region="${BASH_REMATCH[1]}"
+    repo_project="${BASH_REMATCH[2]}"
+    repo_name="${BASH_REMATCH[3]}"
+    artifact_repos["$repo_name"]="$repo_region"
   fi
 done
 
-repositories=($(printf "%s\n" "${repositories[@]}" | sort -u))
+if [ ${#artifact_repos[@]} -eq 0 ]; then
+  echo "ℹ️ No se detectaron repositorios Artifact Registry en las imágenes seleccionadas."
+else
+  echo "Repositorios Artifact Registry detectados:"
+  for repo in "${!artifact_repos[@]}"; do
+    echo " - $repo (región: ${artifact_repos[$repo]})"
+  done
+fi
 
-echo -e "\nRepositorios detectados relacionados a las imágenes:"
-for repo in "${repositories[@]}"; do
-  echo " - $repo"
-done
+read -p $'\n¿Quieres eliminar los repositorios Artifact Registry detectados? (s/n): ' delete_repos_confirm
+
+if [[ "$delete_repos_confirm" =~ ^[sS]$ ]]; then
+  for repo in "${!artifact_repos[@]}"; do
+    region_repo=${artifact_repos[$repo]}
+    echo "Eliminando repositorio Artifact Registry: $repo en región $region_repo"
+    gcloud artifacts repositories delete "$repo" --location="$region_repo" --quiet || {
+      echo "⚠️ Error eliminando repositorio $repo"
+    }
+  done
+else
+  echo "Repositorios no eliminados."
+fi
 
 read -p $'\n¿Confirmas que deseas eliminar el servicio, las imágenes seleccionadas y los archivos locales relacionados? (s/n): ' confirm
 if [[ ! "$confirm" =~ ^[sS]$ ]]; then
@@ -107,7 +128,6 @@ gcloud run services delete "$service_name" --platform=managed --region="$region"
 echo "🗑️ Eliminando imágenes seleccionadas..."
 for img in "${images_to_delete[@]}"; do
   echo "Eliminando imagen: $img"
-  # Primero intentar con container images delete, si falla intentar artifacts docker images delete
   if ! gcloud container images delete "$img" --quiet --force-delete-tags; then
     gcloud artifacts docker images delete "$img" --quiet --delete-tags || \
       echo "⚠️ No se pudo eliminar la imagen $img con los comandos disponibles."
@@ -119,7 +139,6 @@ echo "🧹 Eliminando archivos locales relacionados..."
 files_to_delete=(
   "./script-v2ray.sh"
   "./script-v2ray-uninstall.sh"
-  # Agrega otros archivos o carpetas si los conoces
 )
 
 for file in "${files_to_delete[@]}"; do
