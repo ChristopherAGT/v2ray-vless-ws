@@ -21,13 +21,11 @@ NC='\033[0m'          # Sin color (reset)
 # Funciones auxiliares
 # -------------------------------
 
-# Muestra mensaje de error y termina la ejecución
 function handle_error {
   echo -e "${RED}❌ ERROR:${NC} $1"
   exit 1
 }
 
-# Muestra un encabezado de sección con color y emoji
 function print_section {
   echo -e "\n${CYAN}─────────────────────────────${NC}"
   echo -e "${CYAN}🔹 $1${NC}"
@@ -38,23 +36,21 @@ function print_section {
 # Variables globales
 # -------------------------------
 
-# Regiones donde buscar servicios Cloud Run
-regions=(
-  us-central1 us-east1 us-east4 us-west1
-  europe-west1 europe-west4
-  asia-northeast1 asia-southeast1
-)
+print_section "Obteniendo regiones disponibles para Cloud Run"
+
+# Obtener regiones Cloud Run automáticamente
+mapfile -t regions < <(gcloud run regions list --format="value(locationId)")
+
+if [[ ${#regions[@]} -eq 0 ]]; then
+  handle_error "No se encontraron regiones disponibles para Cloud Run."
+fi
 
 declare -a service_array
-
-# -------------------------------
-# Inicio del script
-# -------------------------------
 
 print_section "Buscando servicios Cloud Run en todas las regiones"
 
 for region in "${regions[@]}"; do
-  services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)")
+  services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null || true)
   if [[ -n "$services" ]]; then
     while IFS= read -r svc; do
       [[ -n "$svc" ]] && service_array+=("$svc::$region")
@@ -63,7 +59,7 @@ for region in "${regions[@]}"; do
 done
 
 if [[ ${#service_array[@]} -eq 0 ]]; then
-  handle_error "No se encontraron servicios Cloud Run en las regiones configuradas."
+  handle_error "No se encontraron servicios Cloud Run en las regiones disponibles."
 fi
 
 echo -e "${GREEN}🟢 Servicios encontrados:${NC}"
@@ -88,7 +84,6 @@ echo "Región : ${region}"
 
 print_section "Buscando imágenes relacionadas en Container Registry"
 
-# Buscar imágenes relacionadas al servicio por nombre
 images=$(gcloud container images list --format="value(NAME)" | grep "/$service_name$" || true)
 
 if [[ -z "$images" ]]; then
@@ -118,7 +113,6 @@ print_section "Imagen seleccionada"
 echo "Proyecto : ${project_name}"
 echo "Imagen   : ${image_name}"
 
-# Obtener el digest SHA256 para la imagen
 digest=$(gcloud container images list-tags "gcr.io/${project_name}/${image_name}" --format='get(digest)' --limit=1 --filter='tags:*' | head -n 1)
 
 if [[ -z "$digest" ]]; then
@@ -137,10 +131,6 @@ if [[ ! "$confirm" =~ ^[sS]$ ]]; then
   echo -e "${YELLOW}❌ Operación cancelada por el usuario.${NC}"
   exit 0
 fi
-
-# -------------------------------
-# Eliminación de recursos
-# -------------------------------
 
 print_section "Eliminando servicio Cloud Run"
 if ! gcloud run services delete "${service_name}" --platform=managed --region="${region}" --quiet; then
