@@ -113,7 +113,14 @@ fi
 
 echo "📍 Región seleccionada: $REGION"
 
-# 🔄 Clonar el repositorio
+# 🔄 Verificar y limpiar repositorio existente
+REPO_DIR="gcp-v2ray"
+if [[ -d "$REPO_DIR" ]]; then
+  echo "♻️ Eliminando repositorio existente '$REPO_DIR'..."
+  rm -rf "$REPO_DIR"
+fi
+
+# 📥 Clonar el repositorio
 echo "📥 Clonando el repositorio..."
 git clone https://github.com/ChristopherAGT/gcp-v2ray.git
 
