@@ -22,7 +22,7 @@ if [[ -z "$PROJECT_ID" ]]; then
   fi
 fi
 
-echo "✅ Proyecto activo: $PROJECT_ID"
+echo "✅ Proyecto GCP activo: $PROJECT_ID"
 
 # 👉 Solicitar al usuario un nombre personalizado para la imagen
 read -p "🖊️ Ingresa un nombre para tu imagen (sin espacios): " CUSTOM_IMAGE_NAME
@@ -163,7 +163,19 @@ SERVICE_OUTPUT=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --port 8080 \
   --format="value(status.url)")
 
-# 🧾 Mostrar información esencial
+# Crear archivo informacion.txt con los datos esenciales
+cat > informacion.txt <<EOF
+📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 INFORMACIÓN ESENCIAL
+📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗂️ Proyecto GCP       : $PROJECT_ID
+📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME
+🆔 UUID Generado       : $NEW_ID
+📍 Región Desplegada   : $REGION
+🌐 Dominio Google      : $SERVICE_OUTPUT
+📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EOF
+
 echo ""
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🔍 INFORMACIÓN ESENCIAL"
@@ -176,3 +188,42 @@ echo "🌐 Dominio Google      : $SERVICE_OUTPUT"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "✅ ¡Despliegue completado con éxito!"
+
+# --- Gestión de bucket privado para almacenamiento temporal ---
+
+BUCKET_NAME="$PROJECT_ID-informacion"
+
+# Crear bucket privado (ignorar error si ya existe)
+if ! gsutil ls -b gs://$BUCKET_NAME &> /dev/null; then
+  echo "📦 Creando bucket privado $BUCKET_NAME en $REGION..."
+  gsutil mb -l "$REGION" gs://$BUCKET_NAME/
+else
+  echo "📦 Bucket $BUCKET_NAME ya existe."
+fi
+
+# Subir archivo informacion.txt al bucket privado
+echo "📤 Subiendo informacion.txt a gs://$BUCKET_NAME/"
+gsutil cp informacion.txt gs://$BUCKET_NAME/
+
+echo ""
+echo "🔗 Archivo subido a bucket privado."
+echo "💡 Para descargar el archivo ejecuta este comando en otra terminal:"
+echo "    gsutil cp gs://$BUCKET_NAME/informacion.txt ./"
+echo ""
+
+# Esperar confirmación de descarga antes de eliminar
+read -p "¿Confirmas que descargaste el archivo? (s/n): " RESPUESTA
+
+if [[ "$RESPUESTA" == "s" || "$RESPUESTA" == "S" ]]; then
+  echo "🗑️ Eliminando archivo y bucket privado..."
+
+  # Eliminar archivo
+  gsutil rm gs://$BUCKET_NAME/informacion.txt
+
+  # Eliminar bucket (debe estar vacío)
+  gsutil rb gs://$BUCKET_NAME/
+
+  echo "✅ Archivo y bucket eliminados."
+else
+  echo "⚠️ No se eliminaron los recursos. Recuerda eliminarlos manualmente si no los necesitas."
+fi
