@@ -31,6 +31,12 @@ git clone https://github.com/ChristopherAGT/gcp-v2ray.git
 # 📁 Ingresar al directorio
 cd gcp-v2ray || { echo "❌ No se pudo acceder al directorio del repositorio."; exit 1; }
 
+# 🔄 Verificar si uuidgen está disponible
+if ! command -v uuidgen &> /dev/null; then
+  echo "📦 Instalando uuidgen..."
+  sudo apt update && sudo apt install -y uuid-runtime
+fi
+
 # 🔄 Generar nuevo ID aleatorio
 NEW_ID=$(uuidgen)
 
