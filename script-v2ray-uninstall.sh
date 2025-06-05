@@ -1,22 +1,26 @@
 #!/bin/bash
 
-echo "🔍 Obteniendo lista de servicios Cloud Run..."
+# Lista de regiones donde buscar servicios Cloud Run (ajusta según tus zonas usadas)
+regions=(us-central1 us-east1 us-east4 us-west1 europe-west1 europe-west4 asia-northeast1 asia-southeast1)
 
-# Obtener servicios
-service_names=$(gcloud run services list --platform=managed --format="value(metadata.name)")
-if [ -z "$service_names" ]; then
-  echo "❌ No se encontraron servicios Cloud Run."
+declare -a service_array
+
+echo "🔍 Buscando servicios Cloud Run en todas las regiones..."
+
+for region in "${regions[@]}"; do
+  services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null)
+  if [ -n "$services" ]; then
+    while IFS= read -r svc; do
+      service_array+=("$svc $region")
+    done <<< "$services"
+  fi
+done
+
+if [ ${#service_array[@]} -eq 0 ]; then
+  echo "❌ No se encontraron servicios Cloud Run en las regiones definidas."
   exit 1
 fi
 
-# Construir arreglo de servicios con sus regiones
-declare -a service_array
-while IFS= read -r svc; do
-  region=$(gcloud run services describe "$svc" --platform=managed --format="value(metadata.annotations.run.googleapis.com/location)")
-  service_array+=("$svc $region")
-done <<< "$service_names"
-
-# Mostrar lista para selección
 echo "🟢 Servicios disponibles:"
 for i in "${!service_array[@]}"; do
   svc_name=$(echo "${service_array[$i]}" | awk '{print $1}')
@@ -24,14 +28,12 @@ for i in "${!service_array[@]}"; do
   echo "$((i+1)). Servicio: $svc_name, Región: $svc_region"
 done
 
-# Selección del servicio
 read -p "Selecciona el número del servicio que quieres eliminar: " service_index
 if ! [[ "$service_index" =~ ^[0-9]+$ ]] || [ "$service_index" -lt 1 ] || [ "$service_index" -gt "${#service_array[@]}" ]; then
   echo "❌ Selección inválida."
   exit 1
 fi
 
-# Asignar selección
 selected="${service_array[$((service_index-1))]}"
 service_name=$(echo "$selected" | awk '{print $1}')
 region=$(echo "$selected" | awk '{print $2}')
@@ -52,14 +54,12 @@ if [ -z "$images" ]; then
   fi
 fi
 
-# Mostrar imágenes
 IFS=$'\n' read -rd '' -a image_array <<< "$images"
 echo "🟢 Imágenes disponibles:"
 for i in "${!image_array[@]}"; do
   echo "$((i+1)). ${image_array[$i]}"
 done
 
-# Selección de imagen
 read -p "Selecciona el número de la imagen que quieres eliminar: " image_index
 if ! [[ "$image_index" =~ ^[0-9]+$ ]] || [ "$image_index" -lt 1 ] || [ "$image_index" -gt "${#image_array[@]}" ]; then
   echo "❌ Selección inválida."
@@ -74,11 +74,10 @@ echo -e "\n✅ Imagen seleccionada:"
 echo "Proyecto: $project_name"
 echo "Imagen: $image_name"
 
-# Obtener tag (si existe)
+# Obtener la primera etiqueta disponible, si no hay usar latest
 tag=$(gcloud container images list-tags "gcr.io/$project_name/$image_name" --format='get(tags)' --limit=1 | head -n1)
 tag=${tag:-latest}
 
-# Confirmación final
 read -p $'\n¿Deseas eliminar el servicio, la imagen y los archivos locales relacionados? (s/n): ' confirm
 if [[ "$confirm" != [sS] ]]; then
   echo "❌ Operación cancelada."
@@ -96,6 +95,7 @@ files_to_delete=(
   "./script-v2ray.sh"
   "./script-v2ray-uninstall.sh"
 )
+
 for file in "${files_to_delete[@]}"; do
   if [ -f "$file" ]; then
     echo "🗑️ Eliminando $file"
