@@ -1,65 +1,61 @@
 #!/bin/bash
 
-# Lista de regiones donde buscar servicios Cloud Run (ajusta según tus zonas usadas)
-regions=(us-central1 us-east1 us-east4 us-west1 europe-west1 europe-west4 asia-northeast1 asia-southeast1)
-
-declare -a service_array
-
-echo "🔍 Buscando servicios Cloud Run en todas las regiones..."
-
-for region in "${regions[@]}"; do
-  services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null)
-  if [ -n "$services" ]; then
-    while IFS= read -r svc; do
-      service_array+=("$svc $region")
-    done <<< "$services"
-  fi
-done
-
-if [ ${#service_array[@]} -eq 0 ]; then
-  echo "❌ No se encontraron servicios Cloud Run en las regiones definidas."
+echo "🔍 Obteniendo lista de servicios Cloud Run..."
+services=$(gcloud run services list --platform=managed --format="value(metadata.name)")
+if [ -z "$services" ]; then
+  echo "❌ No se encontraron servicios Cloud Run."
   exit 1
 fi
 
+# Mostrar servicios enumerados
 echo "🟢 Servicios disponibles:"
+IFS=$'\n' read -rd '' -a service_array <<<"$services"
 for i in "${!service_array[@]}"; do
-  svc_name=$(echo "${service_array[$i]}" | awk '{print $1}')
-  svc_region=$(echo "${service_array[$i]}" | awk '{print $2}')
-  echo "$((i+1)). Servicio: $svc_name, Región: $svc_region"
+  echo "$((i+1)). Servicio: ${service_array[$i]}"
 done
 
+# Selección del servicio
 read -p "Selecciona el número del servicio que quieres eliminar: " service_index
 if ! [[ "$service_index" =~ ^[0-9]+$ ]] || [ "$service_index" -lt 1 ] || [ "$service_index" -gt "${#service_array[@]}" ]; then
   echo "❌ Selección inválida."
   exit 1
 fi
 
-selected="${service_array[$((service_index-1))]}"
-service_name=$(echo "$selected" | awk '{print $1}')
-region=$(echo "$selected" | awk '{print $2}')
+service_name="${service_array[$((service_index-1))]}"
+echo "Servicio seleccionado: $service_name"
 
-echo -e "\n🔎 Detalles del servicio seleccionado:"
-echo "Nombre: $service_name"
-echo "Región: $region"
+# Obtener región del servicio automáticamente
+region=$(gcloud run services describe "$service_name" --platform=managed --format="value(location)")
+if [ -z "$region" ]; then
+  echo "❌ No se pudo determinar la región del servicio."
+  exit 1
+fi
+
+echo "Región detectada: $region"
 
 echo -e "\n🔍 Buscando imágenes relacionadas en Container Registry..."
+
+# Listar imágenes que contengan el nombre del servicio para facilitar selección
 images=$(gcloud container images list --format="value(NAME)" | grep "$service_name")
 
 if [ -z "$images" ]; then
-  echo "⚠️ No se encontraron imágenes relacionadas. Mostrando todas..."
+  echo "⚠️ No se encontraron imágenes relacionadas con el servicio '$service_name'."
+  echo "Obteniendo lista completa de imágenes..."
+
   images=$(gcloud container images list --format="value(NAME)")
   if [ -z "$images" ]; then
-    echo "❌ No hay imágenes disponibles en Container Registry."
+    echo "❌ No se encontraron imágenes en Container Registry."
     exit 1
   fi
 fi
 
-IFS=$'\n' read -rd '' -a image_array <<< "$images"
 echo "🟢 Imágenes disponibles:"
+IFS=$'\n' read -rd '' -a image_array <<<"$images"
 for i in "${!image_array[@]}"; do
   echo "$((i+1)). ${image_array[$i]}"
 done
 
+# Selección de la imagen
 read -p "Selecciona el número de la imagen que quieres eliminar: " image_index
 if ! [[ "$image_index" =~ ^[0-9]+$ ]] || [ "$image_index" -lt 1 ] || [ "$image_index" -gt "${#image_array[@]}" ]; then
   echo "❌ Selección inválida."
@@ -74,10 +70,7 @@ echo -e "\n✅ Imagen seleccionada:"
 echo "Proyecto: $project_name"
 echo "Imagen: $image_name"
 
-# Obtener la primera etiqueta disponible, si no hay usar latest
-tag=$(gcloud container images list-tags "gcr.io/$project_name/$image_name" --format='get(tags)' --limit=1 | head -n1)
-tag=${tag:-latest}
-
+# Confirmación final
 read -p $'\n¿Deseas eliminar el servicio, la imagen y los archivos locales relacionados? (s/n): ' confirm
 if [[ "$confirm" != [sS] ]]; then
   echo "❌ Operación cancelada."
@@ -88,20 +81,22 @@ echo -e "\n🗑️ Eliminando servicio Cloud Run..."
 gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet
 
 echo "🗑️ Eliminando imagen del contenedor..."
-gcloud container images delete "gcr.io/$project_name/$image_name:$tag" --quiet
+gcloud container images delete "gcr.io/$project_name/$image_name" --quiet
 
 echo "🧹 Eliminando archivos locales relacionados..."
+
 files_to_delete=(
   "./script-v2ray.sh"
   "./script-v2ray-uninstall.sh"
+  # Agrega más archivos o rutas si los conoces
 )
 
 for file in "${files_to_delete[@]}"; do
   if [ -f "$file" ]; then
-    echo "🗑️ Eliminando $file"
+    echo "🗑️ Eliminando archivo $file"
     rm -f "$file"
   else
-    echo "ℹ️ Archivo $file no encontrado."
+    echo "ℹ️ Archivo $file no encontrado, saltando."
   fi
 done
 
