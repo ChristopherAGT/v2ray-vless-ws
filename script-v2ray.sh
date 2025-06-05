@@ -48,9 +48,11 @@ DEPLOY_OUTPUT=$(gcloud run deploy vless-ws \
   --allow-unauthenticated \
   --port 8080)
 
-# Extraer hasta 2 URLs (si existen)
-DOMINIO_1=$(echo "$DEPLOY_OUTPUT" | grep -oP 'https://[^\s]+' | sed -n 1p)
-DOMINIO_2=$(echo "$DEPLOY_OUTPUT" | grep -oP 'https://[^\s]+' | sed -n 2p)
+# Extraer la línea con el Service URL (primera URL oficial que imprime gcloud)
+SERVICE_URL=$(echo "$DEPLOY_OUTPUT" | grep -Eo 'https://[a-zA-Z0-9.-]+\.run\.app' | head -n 1)
+
+# Extra adicional: si hay otra URL distinta, capturarla también
+SECOND_URL=$(echo "$DEPLOY_OUTPUT" | grep -Eo 'https://[a-zA-Z0-9.-]+\.run\.app' | sed -n 2p)
 
 echo ""
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -58,8 +60,8 @@ echo "🔍 INFORMACIÓN ESENCIAL"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📛 Nombre de la Imagen : $IMAGE_NAME"
 echo "🆔 UUID Generado       : $NEW_ID"
-echo "🌐 Dominio Google 1    : ${DOMINIO_1:-No detectado}"
-echo "🌐 Dominio Google 2    : ${DOMINIO_2:-No detectado}"
+echo "🌐 Dominio Google 1    : ${SERVICE_URL:-No detectado}"
+echo "🌐 Dominio Google 2    : ${SECOND_URL:-No detectado}"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "✅ ¡Despliegue completado con éxito!"
