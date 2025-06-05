@@ -1,110 +1,65 @@
 #!/bin/bash
 
-# -------- CONFIGURACIÓN --------
-PROJECT_ID=$(gcloud config get-value project)
-
-# -------- FUNCIONES --------
-
-function borrar_servicio_cloudrun() {
-    echo "🔍 Listando servicios disponibles en Cloud Run:"
-    SERVICES=$(gcloud run services list --platform=managed --format="value(metadata.name)")
-
-    if [[ -z "$SERVICES" ]]; then
-        echo "❌ No hay servicios de Cloud Run en este proyecto."
-        return
-    fi
-
-    echo "✅ Servicios encontrados:"
-    select SERVICE in $SERVICES; do
-        if [[ -n "$SERVICE" ]]; then
-            REGION=$(gcloud run services describe "$SERVICE" --platform=managed --format="value(metadata.annotations['run.googleapis.com/region'])")
-            if [[ -z "$REGION" ]]; then
-                echo "❌ No se pudo detectar la región del servicio $SERVICE. Abortando."
-                exit 1
-            fi
-            echo "📍 Región detectada: $REGION"
-            echo "🗑 Eliminando servicio: $SERVICE"
-            gcloud run services delete "$SERVICE" --platform=managed --region="$REGION" --quiet
-            break
-        else
-            echo "⚠ Opción inválida. Intenta de nuevo."
-        fi
-    done
-}
-
-function borrar_imagen_container_registry() {
-    echo ""
-    echo "🖼 Listando imágenes en Container Registry (gcr.io):"
-    IMAGES=$(gcloud container images list --repository=gcr.io/$PROJECT_ID --format="value(NAME)")
-
-    if [[ -z "$IMAGES" ]]; then
-        echo "❌ No se encontraron imágenes en Container Registry."
-        return
-    fi
-
-    echo "✅ Imágenes encontradas:"
-    select IMAGE in $IMAGES; do
-        if [[ -n "$IMAGE" ]]; then
-            echo "🗑 Eliminando imagen: $IMAGE"
-            gcloud container images delete "$IMAGE" --quiet --force-delete-tags
-            break
-        else
-            echo "⚠ Opción inválida. Intenta de nuevo."
-        fi
-    done
-}
-
-function borrar_imagen_artifact_registry() {
-    echo ""
-    echo "🖼 Listando repositorios de Artifact Registry:"
-    REPOS=$(gcloud artifacts repositories list --project=$PROJECT_ID --format="value(name)")
-
-    if [[ -z "$REPOS" ]]; then
-        echo "❌ No se encontraron repositorios en Artifact Registry."
-        return
-    fi
-
-    echo "✅ Repositorios encontrados:"
-    select REPO in $REPOS; do
-        if [[ -n "$REPO" ]]; then
-            echo "🔍 Listando imágenes en el repositorio: $REPO"
-            IMAGES=$(gcloud artifacts docker images list "$REPO" --format="value(IMAGE)")
-
-            if [[ -z "$IMAGES" ]]; then
-                echo "❌ No se encontraron imágenes en el repositorio $REPO."
-                return
-            fi
-
-            echo "✅ Imágenes encontradas:"
-            select IMAGE in $IMAGES; do
-                if [[ -n "$IMAGE" ]]; then
-                    echo "🗑 Eliminando imagen: $IMAGE"
-                    gcloud artifacts docker images delete "$IMAGE" --quiet --delete-tags
-                    break 2
-                else
-                    echo "⚠ Opción inválida. Intenta de nuevo."
-                fi
-            done
-        else
-            echo "⚠ Opción inválida. Intenta de nuevo."
-        fi
-    done
-}
-
-# -------- EJECUCIÓN --------
-
-borrar_servicio_cloudrun
-borrar_imagen_container_registry
-borrar_imagen_artifact_registry
-
-# -------- ELIMINAR SCRIPT DESCARGADO --------
-echo ""
-if [[ -f "script-v2ray.sh" ]]; then
-    echo "🧹 Eliminando script script-v2ray.sh..."
-    rm script-v2ray.sh
-else
-    echo "ℹ No se encontró script-v2ray.sh para eliminar."
+echo "🔍 Obteniendo lista de servicios Cloud Run..."
+services=$(gcloud run services list --format="value(metadata.name,location)" --platform=managed)
+if [ -z "$services" ]; then
+  echo "❌ No se encontraron servicios Cloud Run."
+  exit 1
 fi
 
-echo ""
-echo "✅ Limpieza completada."
+# Mostrar servicios con número
+echo "🟢 Servicios disponibles:"
+IFS=$'\n' read -rd '' -a service_array <<<"$services"
+for i in "${!service_array[@]}"; do
+  echo "$((i+1)). ${service_array[$i]}"
+done
+
+# Selección del servicio
+read -p "Selecciona el número del servicio a eliminar: " service_index
+selected_service="${service_array[$((service_index-1))]}"
+service_name=$(echo "$selected_service" | awk '{print $1}')
+region=$(echo "$selected_service" | awk '{print $2}')
+
+echo "✅ Servicio seleccionado: $service_name (Región: $region)"
+
+# Lista de imágenes
+echo "🔍 Obteniendo lista de imágenes en Container Registry..."
+images=$(gcloud container images list --format="value(NAME)")
+if [ -z "$images" ]; then
+  echo "❌ No se encontraron imágenes."
+  exit 1
+fi
+
+# Mostrar imágenes con número
+echo "🟢 Imágenes disponibles:"
+IFS=$'\n' read -rd '' -a image_array <<<"$images"
+for i in "${!image_array[@]}"; do
+  echo "$((i+1)). ${image_array[$i]}"
+done
+
+# Selección de la imagen
+read -p "Selecciona el número de la imagen a borrar: " image_index
+selected_image="${image_array[$((image_index-1))]}"
+project_name=$(echo "$selected_image" | cut -d'/' -f2)
+image_name=$(echo "$selected_image" | cut -d'/' -f3)
+
+echo "✅ Imagen seleccionada: $image_name (Proyecto: $project_name)"
+
+# Confirmación
+read -p "¿Deseas continuar con la eliminación del servicio y la imagen? (s/n): " confirm
+if [[ "$confirm" != "s" && "$confirm" != "S" ]]; then
+  echo "❌ Operación cancelada."
+  exit 1
+fi
+
+# Eliminar servicio Cloud Run
+echo "🗑️ Eliminando servicio Cloud Run..."
+gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet
+
+# Eliminar imagen del contenedor
+echo "🗑️ Eliminando imagen del contenedor..."
+gcloud container images delete "gcr.io/$project_name/$image_name" --quiet
+
+# Eliminar script
+echo "🧹 Eliminando este script..."
+rm -- "$0"
