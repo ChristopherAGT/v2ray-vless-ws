@@ -136,7 +136,7 @@ fi
 # 🔄 Generar nuevo ID aleatorio
 NEW_ID=$(uuidgen)
 
-# 📝 Reemplazar el valor del campo "id" en config.json
+# 🛠️ Reemplazar el ID en config.json
 echo "🛠️ Reemplazando el ID en config.json..."
 sed -i "s/\"id\":\s*\"[^\"]*\"/\"id\": \"$NEW_ID\"/" config.json
 
@@ -153,25 +153,30 @@ docker build -t $IMAGE_NAME .
 echo "📤 Subiendo la imagen al Container Registry..."
 docker push $IMAGE_NAME
 
-# 🚀 Desplegar el servicio en Cloud Run usando la región seleccionada
+# 🚀 Desplegar el servicio en Cloud Run
 echo "🌐 Desplegando el servicio en Cloud Run en $REGION..."
-SERVICE_OUTPUT=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
+DEPLOY_OUTPUT=$(mktemp)
+SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --image "$IMAGE_NAME" \
   --platform managed \
   --region "$REGION" \
   --allow-unauthenticated \
-  --port 8080 \
-  --format="value(status.url)")
+  --port 8080 | tee "$DEPLOY_OUTPUT")
+
+# Extraer también el dominio final desde el output
+SECOND_DOMAIN=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.a\.run\.app' "$DEPLOY_OUTPUT" | tail -n 1)
 
 # 🧾 Mostrar información esencial
 echo ""
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🔍 INFORMACIÓN ESENCIAL"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🏷️ Proyecto GCP       : $PROJECT_ID"
 echo "📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME"
 echo "🆔 UUID Generado       : $NEW_ID"
 echo "📍 Región Desplegada   : $REGION"
-echo "🌐 Dominio Google      : $SERVICE_OUTPUT"
+echo "🌐 Dominio 1 (Deploy)  : $SERVICE_URL"
+echo "🌐 Dominio 2 (Service) : $SECOND_DOMAIN"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "✅ ¡Despliegue completado con éxito!"
