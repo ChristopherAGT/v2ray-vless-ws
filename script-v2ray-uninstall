@@ -3,24 +3,25 @@
 # -------- CONFIGURACIÓN --------
 PROJECT_ID=$(gcloud config get-value project)
 
-# -------- MOSTRAR SERVICIOS DISPONIBLES EN CLOUD RUN --------
-echo "🔍 Listando servicios disponibles en Cloud Run:"
-SERVICES=$(gcloud run services list --platform=managed --format="value(metadata.name)")
+# -------- FUNCIONES --------
 
-if [[ -z "$SERVICES" ]]; then
-    echo "❌ No hay servicios de Cloud Run en este proyecto."
-else
+function borrar_servicio_cloudrun() {
+    echo "🔍 Listando servicios disponibles en Cloud Run:"
+    SERVICES=$(gcloud run services list --platform=managed --format="value(metadata.name)")
+
+    if [[ -z "$SERVICES" ]]; then
+        echo "❌ No hay servicios de Cloud Run en este proyecto."
+        return
+    fi
+
     echo "✅ Servicios encontrados:"
     select SERVICE in $SERVICES; do
         if [[ -n "$SERVICE" ]]; then
-            # Obtener la región del servicio seleccionado
             REGION=$(gcloud run services describe "$SERVICE" --platform=managed --format="value(metadata.annotations['run.googleapis.com/region'])")
-            
             if [[ -z "$REGION" ]]; then
                 echo "❌ No se pudo detectar la región del servicio $SERVICE. Abortando."
                 exit 1
             fi
-
             echo "📍 Región detectada: $REGION"
             echo "🗑 Eliminando servicio: $SERVICE"
             gcloud run services delete "$SERVICE" --platform=managed --region="$REGION" --quiet
@@ -29,16 +30,18 @@ else
             echo "⚠ Opción inválida. Intenta de nuevo."
         fi
     done
-fi
+}
 
-# -------- MOSTRAR IMÁGENES DISPONIBLES --------
-echo ""
-echo "🖼 Listando imágenes en Container Registry:"
-IMAGES=$(gcloud container images list --repository=gcr.io/$PROJECT_ID --format="value(NAME)")
+function borrar_imagen_container_registry() {
+    echo ""
+    echo "🖼 Listando imágenes en Container Registry (gcr.io):"
+    IMAGES=$(gcloud container images list --repository=gcr.io/$PROJECT_ID --format="value(NAME)")
 
-if [[ -z "$IMAGES" ]]; then
-    echo "❌ No se encontraron imágenes en Container Registry."
-else
+    if [[ -z "$IMAGES" ]]; then
+        echo "❌ No se encontraron imágenes en Container Registry."
+        return
+    fi
+
     echo "✅ Imágenes encontradas:"
     select IMAGE in $IMAGES; do
         if [[ -n "$IMAGE" ]]; then
@@ -49,7 +52,50 @@ else
             echo "⚠ Opción inválida. Intenta de nuevo."
         fi
     done
-fi
+}
+
+function borrar_imagen_artifact_registry() {
+    echo ""
+    echo "🖼 Listando repositorios de Artifact Registry:"
+    REPOS=$(gcloud artifacts repositories list --project=$PROJECT_ID --format="value(name)")
+
+    if [[ -z "$REPOS" ]]; then
+        echo "❌ No se encontraron repositorios en Artifact Registry."
+        return
+    fi
+
+    echo "✅ Repositorios encontrados:"
+    select REPO in $REPOS; do
+        if [[ -n "$REPO" ]]; then
+            echo "🔍 Listando imágenes en el repositorio: $REPO"
+            IMAGES=$(gcloud artifacts docker images list "$REPO" --format="value(IMAGE)")
+
+            if [[ -z "$IMAGES" ]]; then
+                echo "❌ No se encontraron imágenes en el repositorio $REPO."
+                return
+            fi
+
+            echo "✅ Imágenes encontradas:"
+            select IMAGE in $IMAGES; do
+                if [[ -n "$IMAGE" ]]; then
+                    echo "🗑 Eliminando imagen: $IMAGE"
+                    gcloud artifacts docker images delete "$IMAGE" --quiet --delete-tags
+                    break 2
+                else
+                    echo "⚠ Opción inválida. Intenta de nuevo."
+                fi
+            done
+        else
+            echo "⚠ Opción inválida. Intenta de nuevo."
+        fi
+    done
+}
+
+# -------- EJECUCIÓN --------
+
+borrar_servicio_cloudrun
+borrar_imagen_container_registry
+borrar_imagen_artifact_registry
 
 # -------- ELIMINAR SCRIPT DESCARGADO --------
 echo ""
