@@ -1,7 +1,13 @@
 #!/bin/bash
 
-echo "🔍 Obteniendo lista de servicios Cloud Run..."
-services=$(gcloud run services list --platform=managed --format="value(metadata.name,location)")
+echo "🔍 Obteniendo lista de servicios Cloud Run con región..."
+
+services=""
+for svc in $(gcloud run services list --platform=managed --format="value(metadata.name)"); do
+  region=$(gcloud run services describe "$svc" --platform=managed --format="value(metadata.annotations.run.googleapis.com/location)")
+  services+="$svc $region"$'\n'
+done
+
 if [ -z "$services" ]; then
   echo "❌ No se encontraron servicios Cloud Run."
   exit 1
@@ -83,19 +89,4 @@ gcloud container images delete "gcr.io/$project_name/$image_name" --quiet
 
 echo "🧹 Eliminando archivos locales relacionados..."
 
-files_to_delete=(
-  "./script-v2ray.sh"
-  "./script-v2ray-uninstall.sh"
-  # Puedes agregar más archivos o rutas si los conoces
-)
-
-for file in "${files_to_delete[@]}"; do
-  if [ -f "$file" ]; then
-    echo "🗑️ Eliminando archivo $file"
-    rm -f "$file"
-  else
-    echo "ℹ️ Archivo $file no encontrado, saltando."
-  fi
-done
-
-echo -e "\n✅ Proceso de desinstalación completado."
+files_to_delete
