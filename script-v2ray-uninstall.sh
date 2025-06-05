@@ -1,73 +1,67 @@
 #!/bin/bash
 
-KEYWORD="v2ray"
-
-echo "🔍 Buscando servicios Cloud Run con '$KEYWORD'..."
-
-services=$(gcloud run services list --platform=managed --format="value(metadata.name,location)" | grep "$KEYWORD")
-
+echo "🔍 Obteniendo lista de servicios Cloud Run..."
+services=$(gcloud run services list --platform=managed --format="value(metadata.name,location)")
 if [ -z "$services" ]; then
-  echo "❌ No se encontraron servicios Cloud Run con '$KEYWORD'."
-else
-  echo "🟢 Servicios encontrados:"
-  IFS=$'\n' read -rd '' -a service_array <<<"$services"
-  for i in "${!service_array[@]}"; do
-    echo "$((i+1)). ${service_array[$i]}"
-  done
-
-  read -p "¿Eliminar todos estos servicios? (s/n): " confirm
-  if [[ "$confirm" == [sS] ]]; then
-    for service in "${service_array[@]}"; do
-      service_name=$(echo "$service" | awk '{print $1}')
-      region=$(echo "$service" | awk '{print $2}')
-      echo "🗑️ Eliminando servicio: $service_name en región $region"
-      gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet
-    done
-  else
-    echo "❌ Cancelado la eliminación de servicios."
-  fi
+  echo "❌ No se encontraron servicios Cloud Run."
+  exit 1
 fi
 
-echo "🔍 Buscando imágenes en Container Registry con '$KEYWORD'..."
-
-images=$(gcloud container images list --format="value(NAME)" | grep "$KEYWORD")
-
-if [ -z "$images" ]; then
-  echo "❌ No se encontraron imágenes con '$KEYWORD'."
-else
-  echo "🟢 Imágenes encontradas:"
-  IFS=$'\n' read -rd '' -a image_array <<<"$images"
-  for i in "${!image_array[@]}"; do
-    echo "$((i+1)). ${image_array[$i]}"
-  done
-
-  read -p "¿Eliminar todas estas imágenes? (s/n): " confirm_images
-  if [[ "$confirm_images" == [sS] ]]; then
-    for img in "${image_array[@]}"; do
-      echo "🗑️ Eliminando imagen: $img"
-      gcloud container images delete "$img" --quiet
-    done
-  else
-    echo "❌ Cancelado la eliminación de imágenes."
-  fi
-fi
-
-# Eliminar scripts y archivos locales (ajusta rutas si sabes más archivos)
-echo "🧹 Eliminando scripts y archivos locales relacionados..."
-
-files_to_delete=(
-  "./script-v2ray.sh"
-  "./script-v2ray-uninstall.sh"
-  # Agrega aquí más archivos o rutas si sabes que el script creó otros
-)
-
-for file in "${files_to_delete[@]}"; do
-  if [ -f "$file" ]; then
-    echo "🗑️ Eliminando archivo $file"
-    rm -f "$file"
-  else
-    echo "ℹ️ Archivo $file no encontrado, saltando."
-  fi
+# Mostrar servicios enumerados
+echo "🟢 Servicios disponibles:"
+IFS=$'\n' read -rd '' -a service_array <<<"$services"
+for i in "${!service_array[@]}"; do
+  echo "$((i+1)). ${service_array[$i]}"
 done
 
-echo "✅ Limpieza completa."
+# Selección del servicio
+read -p "Selecciona el número del servicio que quieres eliminar: " service_index
+if ! [[ "$service_index" =~ ^[0-9]+$ ]] || [ "$service_index" -lt 1 ] || [ "$service_index" -gt "${#service_array[@]}" ]; then
+  echo "❌ Selección inválida."
+  exit 1
+fi
+
+selected_service="${service_array[$((service_index-1))]}"
+service_name=$(echo "$selected_service" | awk '{print $1}')
+region=$(echo "$selected_service" | awk '{print $2}')
+
+echo "✅ Servicio seleccionado: $service_name (Región: $region)"
+
+echo "🔍 Obteniendo lista de imágenes en Container Registry..."
+images=$(gcloud container images list --format="value(NAME)")
+if [ -z "$images" ]; then
+  echo "❌ No se encontraron imágenes."
+  exit 1
+fi
+
+# Mostrar imágenes enumeradas
+echo "🟢 Imágenes disponibles:"
+IFS=$'\n' read -rd '' -a image_array <<<"$images"
+for i in "${!image_array[@]}"; do
+  echo "$((i+1)). ${image_array[$i]}"
+done
+
+# Selección de la imagen
+read -p "Selecciona el número de la imagen que quieres eliminar: " image_index
+if ! [[ "$image_index" =~ ^[0-9]+$ ]] || [ "$image_index" -lt 1 ] || [ "$image_index" -gt "${#image_array[@]}" ]; then
+  echo "❌ Selección inválida."
+  exit 1
+fi
+
+selected_image="${image_array[$((image_index-1))]}"
+project_name=$(echo "$selected_image" | cut -d'/' -f2)
+image_name=$(echo "$selected_image" | cut -d'/' -f3)
+
+echo "✅ Imagen seleccionada: $image_name (Proyecto: $project_name)"
+
+read -p "¿Deseas continuar con la eliminación del servicio y la imagen? (s/n): " confirm
+if [[ "$confirm" != [sS] ]]; then
+  echo "❌ Operación cancelada."
+  exit 1
+fi
+
+echo "🗑️ Eliminando servicio Cloud Run..."
+gcloud run services delete "$service_name" --platform=managed --region="$region" --quiet
+
+echo "🗑️ Eliminando imagen del contenedor..."
+gcloud container images delete "gcr.io
