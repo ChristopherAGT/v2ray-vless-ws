@@ -31,21 +31,44 @@ git clone https://github.com/ChristopherAGT/gcp-v2ray.git
 # 📁 Ingresar al directorio
 cd gcp-v2ray || { echo "❌ No se pudo acceder al directorio del repositorio."; exit 1; }
 
+# 🔄 Generar nuevo ID aleatorio
+NEW_ID=$(uuidgen)
+
+# 📝 Reemplazar el valor del campo "id" en config.json
+echo "🛠️ Reemplazando el ID en config.json..."
+sed -i "s/\"id\":\s*\"[^\"]*\"/\"id\": \"$NEW_ID\"/" config.json
+
+# 📝 Abrir config.json en nano para revisión manual
+echo "📝 Abriendo config.json en nano. Guarda y cierra el archivo para continuar..."
+nano config.json
+
 # 🐳 Construir la imagen de Docker
+IMAGE_NAME="gcr.io/$PROJECT_ID/vless-ws"
 echo "🔨 Construyendo la imagen Docker..."
-docker build -t gcr.io/$PROJECT_ID/vless-ws .
+docker build -t $IMAGE_NAME .
 
 # ⏫ Subir la imagen al Container Registry
 echo "📤 Subiendo la imagen al Container Registry..."
-docker push gcr.io/$PROJECT_ID/vless-ws
+docker push $IMAGE_NAME
 
 # 🚀 Desplegar el servicio en Cloud Run
 echo "🌐 Desplegando el servicio en Cloud Run..."
-gcloud run deploy vless-ws \
-  --image gcr.io/$PROJECT_ID/vless-ws \
+SERVICE_OUTPUT=$(gcloud run deploy vless-ws \
+  --image $IMAGE_NAME \
   --platform managed \
   --region us-east1 \
   --allow-unauthenticated \
-  --port 8080
+  --port 8080 \
+  --format="value(status.url)")
 
+# 🧾 Mostrar información esencial
+echo ""
+echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔍 INFORMACIÓN ESENCIAL"
+echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📛 Nombre de la Imagen : $IMAGE_NAME"
+echo "🆔 UUID Generado       : $NEW_ID"
+echo "🌐 Dominio Google      : $SERVICE_OUTPUT"
+echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 echo "✅ ¡Despliegue completado con éxito!"
