@@ -155,31 +155,24 @@ docker push $IMAGE_NAME
 
 # 🚀 Desplegar el servicio en Cloud Run usando la región seleccionada
 echo "🌐 Desplegando el servicio en Cloud Run en $REGION..."
-DEPLOY_OUTPUT=$(mktemp)
-
-gcloud run deploy "$CUSTOM_IMAGE_NAME" \
+SERVICE_OUTPUT=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --image "$IMAGE_NAME" \
   --platform managed \
   --region "$REGION" \
   --allow-unauthenticated \
-  --port 8080 > "$DEPLOY_OUTPUT"
-
-# 🎯 Extraer ambos dominios
-DOMINIO1=$(grep -Eo "https://[a-zA-Z0-9.-]+\.a\.run\.app" "$DEPLOY_OUTPUT" | head -n 1)
-DOMINIO2=$(grep -i "Service URL" "$DEPLOY_OUTPUT" | grep -Eo "https://[a-zA-Z0-9.-]+\.a\.run\.app" | head -n 1)
-
-# 🧹 Eliminar archivo temporal
-rm -f "$DEPLOY_OUTPUT"
+  --port 8080 \
+  --format="value(status.url)")
 
 # 🧾 Mostrar información esencial
 echo ""
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🏷️ Proyecto            : $PROJECT_ID"
+echo "🔍 INFORMACIÓN ESENCIAL"
+echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🗂️ Proyecto GCP       : $PROJECT_ID"
 echo "📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME"
 echo "🆔 UUID Generado       : $NEW_ID"
 echo "📍 Región Desplegada   : $REGION"
-echo "🌐 Dominio 1 (principal): $DOMINIO1"
-echo "🌐 Dominio 2 (Service URL): $DOMINIO2"
+echo "🌐 Dominio Google      : $SERVICE_OUTPUT"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "✅ ¡Despliegue completado con éxito!"
