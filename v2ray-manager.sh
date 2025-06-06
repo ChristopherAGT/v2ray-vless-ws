@@ -52,6 +52,7 @@ function mostrar_menu() {
                 echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
                 echo -e "${yellow}Saliendo...${nc}"
                 echo -e "${blue}👾 Créditos a Leo Duarte${nc}"
+                sleep 1
                 exit 0
                 ;;
             *) echo -e "${red}Opción inválida. Inténtalo de nuevo.${nc}"; sleep 2 ;;
