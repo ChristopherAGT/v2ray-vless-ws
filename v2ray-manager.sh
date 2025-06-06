@@ -48,7 +48,7 @@ function mostrar_menu() {
         case $opcion in
             1) construir_servicio ;;
             2) remover_servicio ;;
-            3) echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"; echo -e "${blue}Saliendo...${nc}"; exit 0 ;;
+            3) echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"; echo -e "${yellow}Saliendo...${nc}"; exit 0 ;;
             *) echo -e "${red}Opción inválida. Inténtalo de nuevo.${nc}"; sleep 2 ;;
         esac
     done
