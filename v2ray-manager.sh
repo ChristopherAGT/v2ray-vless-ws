@@ -39,7 +39,7 @@ function mostrar_menu() {
     while true; do
         clear
         echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
-        echo -e "${cyan}   🚀 PANEL DE CONTROL V2RAY-VLESS${nc}"
+        echo -e "${cyan}    🚀 PANEL DE CONTROL V2RAY-VLESS${nc}"
         echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
         echo -e "${yellow}1️⃣  Construir Servicio${nc}"
         echo -e "${yellow}2️⃣  Remover Servicio${nc}"
