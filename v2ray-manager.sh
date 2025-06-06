@@ -1,4 +1,5 @@
 #!/bin/bash
+#Hola
 
 # Colores para mejor visualización
 red='\e[1;31m'
