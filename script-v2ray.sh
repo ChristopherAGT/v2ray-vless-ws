@@ -32,9 +32,7 @@ if [[ -z "$PROJECT_ID" ]]; then
   echo -e "${YELLOW}⚠️ No se detectó un proyecto configurado. Iniciando 'gcloud init'...${RESET}"
   gcloud init
 
-  # Volver a obtener el proyecto tras la inicialización
   PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
-
   if [[ -z "$PROJECT_ID" ]]; then
     echo -e "${RED}"
     echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -62,7 +60,6 @@ echo    "━━━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${RESET}"
 read -p "🖊️ Ingresa un nombre para tu imagen (sin espacios): " CUSTOM_IMAGE_NAME
 
-# Validar que el nombre no esté vacío
 if [[ -z "$CUSTOM_IMAGE_NAME" ]]; then
   echo -e "${RED}"
   echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -80,29 +77,68 @@ echo    "🌍 SELECCIÓN DE REGIÓN DE DESPLIEGUE"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${RESET}"
 declare -a REGIONS=(
-  "us-central1 (Iowa)" "us-east1 (South Carolina)" "us-east4 (N. Virginia)" 
-  "us-west1 (Oregon)" "us-west2 (Los Angeles)" "us-west3 (Salt Lake City)" 
-  "us-west4 (Las Vegas)" "europe-west1 (Belgium)" "europe-west2 (London)" 
-  "europe-west3 (Frankfurt)" "europe-west4 (Netherlands)" "europe-west6 (Zurich)" 
-  "europe-west8 (Milan)" "europe-west9 (Paris)" "europe-southwest1 (Madrid)" 
-  "asia-east1 (Taiwan)" "asia-east2 (Hong Kong)" "asia-northeast1 (Tokyo)" 
-  "asia-northeast2 (Osaka)" "asia-northeast3 (Seoul)" "asia-south1 (Mumbai)" 
-  "asia-south2 (Delhi)" "asia-southeast1 (Singapore)" "asia-southeast2 (Jakarta)" 
-  "australia-southeast1 (Sydney)" "australia-southeast2 (Melbourne)" 
-  "me-central1 (Doha)" "me-west1 (Tel Aviv)" "africa-south1 (Johannesburgo)"
+  "🇺🇸 us-central1 (Iowa)"
+  "🇺🇸 us-east1 (Carolina del Sur)"
+  "🇺🇸 us-east4 (Virginia del Norte)"
+  "🇺🇸 us-west1 (Oregón)"
+  "🇺🇸 us-west2 (Los Ángeles)"
+  "🇺🇸 us-west3 (Salt Lake City)"
+  "🇺🇸 us-west4 (Las Vegas)"
+  "🇨🇦 northamerica-northeast1 (Montreal)"
+  "🇨🇦 northamerica-northeast2 (Toronto)"
+  "🇧🇷 southamerica-east1 (São Paulo)"
+  "🇪🇺 europe-north1 (Finlandia)"
+  "🇪🇺 europe-west1 (Bélgica)"
+  "🇪🇺 europe-west2 (Londres)"
+  "🇪🇺 europe-west3 (Frankfurt)"
+  "🇪🇺 europe-west4 (Países Bajos)"
+  "🇪🇺 europe-west6 (Zúrich)"
+  "🇦🇺 australia-southeast1 (Sídney)"
+  "🇦🇺 australia-southeast2 (Melbourne)"
+  "🇯🇵 asia-northeast1 (Tokio)"
+  "🇯🇵 asia-northeast2 (Osaka)"
+  "🇯🇵 asia-northeast3 (Tokio)"
+  "🇰🇷 asia-northeast4 (Seúl)"
+  "🇸🇬 asia-southeast1 (Singapur)"
+  "🇮🇩 asia-southeast2 (Yakarta)"
+  "🇮🇳 asia-south1 (Mumbai)"
+  "🇮🇳 asia-south2 (Delhi)"
+  "🇭🇰 asia-east2 (Hong Kong)"
+  "🇹🇼 asia-east1 (Taiwán)"
+  "🇨🇱 southamerica-west1 (Santiago)"
+  "🇲🇽 northamerica-northeast3 (Querétaro)"
 )
-
 declare -a REGION_CODES=(
-  "us-central1" "us-east1" "us-east4" 
-  "us-west1" "us-west2" "us-west3" 
-  "us-west4" "europe-west1" "europe-west2" 
-  "europe-west3" "europe-west4" "europe-west6" 
-  "europe-west8" "europe-west9" "europe-southwest1" 
-  "asia-east1" "asia-east2" "asia-northeast1" 
-  "asia-northeast2" "asia-northeast3" "asia-south1" 
-  "asia-south2" "asia-southeast1" "asia-southeast2" 
-  "australia-southeast1" "australia-southeast2" 
-  "me-central1" "me-west1" "africa-south1"
+  "us-central1"
+  "us-east1"
+  "us-east4"
+  "us-west1"
+  "us-west2"
+  "us-west3"
+  "us-west4"
+  "northamerica-northeast1"
+  "northamerica-northeast2"
+  "southamerica-east1"
+  "europe-north1"
+  "europe-west1"
+  "europe-west2"
+  "europe-west3"
+  "europe-west4"
+  "europe-west6"
+  "australia-southeast1"
+  "australia-southeast2"
+  "asia-northeast1"
+  "asia-northeast2"
+  "asia-northeast3"
+  "asia-northeast4"
+  "asia-southeast1"
+  "asia-southeast2"
+  "asia-south1"
+  "asia-south2"
+  "asia-east2"
+  "asia-east1"
+  "southamerica-west1"
+  "northamerica-northeast3"
 )
 
 for i in "${!REGIONS[@]}"; do
@@ -112,7 +148,6 @@ done
 read -p "Ingrese el número de la región deseada: " REGION_INDEX
 REGION=${REGION_CODES[$((REGION_INDEX-1))]}
 
-# Validar selección de región
 if [[ -z "$REGION" ]]; then
   echo -e "${RED}"
   echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -152,10 +187,9 @@ echo -e "${RESET}"
 echo -e "${CYAN}📥 Clonando repositorio desde GitHub...${RESET}"
 git clone https://github.com/ChristopherAGT/gcp-v2ray.git
 
-# 📁 Entrar al directorio clonado
 cd gcp-v2ray || { echo -e "${RED}❌ No se pudo acceder al directorio del repositorio.${RESET}"; exit 1; }
 
-# 🧰 Verificar si uuidgen está instalado, instalar si no
+# 🧰 Verificar si uuidgen está instalado
 if ! command -v uuidgen &> /dev/null; then
   echo -e "${YELLOW}"
   echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -182,7 +216,7 @@ echo    "━━━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${RESET}"
 sed -i "s/\"id\":\s*\"[^\"]*\"/\"id\": \"$NEW_ID\"/" config.json
 
-# ✏️ Abrir config.json para edición manual
+# ✏️ Edición manual de config.json
 echo -e "${BLUE}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo    "📝 EDICIÓN MANUAL DE CONFIG.JSON"
@@ -221,25 +255,7 @@ SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --port 8080 \
   --format="value(status.url)")
 
-# 📄 Crear archivo con información esencial
-echo -e "${BLUE}"
-echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo    "📄 CREANDO ARCHIVO DE INFORMACIÓN"
-echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "${RESET}"
-cat > informacion.txt <<EOF
-📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔍 INFORMACIÓN ESENCIAL
-📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🗂️ Proyecto GCP       : $PROJECT_ID
-📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME
-🆔 UUID Generado       : $NEW_ID
-📍 Región Desplegada   : $REGION
-🌐 Dominio Google      : $SERVICE_URL
-📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EOF
-
-# Mostrar información en pantalla
+# ✅ Mostrar resumen final
 echo -e "\n${GREEN}📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🔍 INFORMACIÓN ESENCIAL"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -251,53 +267,3 @@ echo "🌐 Dominio Google      : $SERVICE_URL"
 echo -e "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${RESET}"
 
 echo -e "${GREEN}✅ ¡Despliegue completado con éxito!${RESET}"
-
-# --- Gestión de bucket privado para almacenamiento temporal ---
-
-BUCKET_NAME="$PROJECT_ID-informacion"
-
-if ! gsutil ls -b gs://"$BUCKET_NAME" &> /dev/null; then
-  echo -e "${CYAN}"
-  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo    "📦 CREANDO BUCKET PRIVADO"
-  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo -e "${RESET}"
-  echo -e "${CYAN}📦 Creando bucket privado $BUCKET_NAME en $REGION...${RESET}"
-  gsutil mb -l "$REGION" gs://"$BUCKET_NAME"/
-else
-  echo -e "${YELLOW}"
-  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo    "📦 BUCKET YA EXISTE"
-  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo -e "${RESET}"
-  echo -e "${YELLOW}📦 Bucket $BUCKET_NAME ya existe.${RESET}"
-fi
-
-# 📤 Subir archivo informacion.txt al bucket privado
-echo -e "${CYAN}"
-echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo    "📤 SUBIENDO ARCHIVO AL BUCKET PRIVADO"
-echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "${RESET}"
-gsutil cp informacion.txt gs://"$BUCKET_NAME"/
-
-# 🔗 Confirmación de subida
-echo -e "\n${CYAN}🔗 El archivo ha sido subido correctamente al bucket privado.${RESET}"
-echo -e "${YELLOW}💡 Para descargar el archivo ejecuta este comando en otra terminal:${RESET}"
-echo "    gsutil cp gs://$BUCKET_NAME/informacion.txt ./"
-echo ""
-
-read -p "¿Confirmas que descargaste el archivo? (s/n): " RESPUESTA
-
-if [[ "$RESPUESTA" =~ ^[Ss]$ ]]; then
-  echo -e "${YELLOW}"
-  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo    "🗑️ ELIMINANDO ARCHIVO Y BUCKET"
-  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo -e "${RESET}"
-  gsutil rm gs://"$BUCKET_NAME"/informacion.txt
-  gsutil rb gs://"$BUCKET_NAME"/
-  echo -e "${GREEN}✅ Archivo y bucket eliminados.${RESET}"
-else
-  echo -e "${YELLOW}⚠️ Recursos no eliminados. Asegúrate de borrarlos manualmente si ya no los necesitas.${RESET}"
-fi
