@@ -296,6 +296,9 @@ SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --port 8080 \
   --format="value(status.url)")
 
+  # 🌐 Generar también el dominio regional
+REGIONAL_DOMAIN="https://${CUSTOM_IMAGE_NAME}-${PROJECT_ID}.${REGION}.run.app"
+
 # ✅ Mostrar resumen final
 echo -e "\n${GREEN}📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🔍 INFORMACIÓN ESENCIAL"
@@ -305,6 +308,7 @@ echo "📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME"
 echo "📍 Región Desplegada   : $REGION"
 echo "🆔 UUID Generado       : $NEW_ID"
 echo "🌐 Path WebSocket      : $WS_PATH"
+echo "🌐 Dominio Regional    : $REGIONAL_DOMAIN"
 echo "🌐 Dominio Google      : $SERVICE_URL"
 echo -e "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${RESET}"
 
