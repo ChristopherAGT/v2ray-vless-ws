@@ -328,7 +328,7 @@ echo "📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME"
 echo "📍 Región Desplegada   : $REGION"
 echo "🆔 UUID Generado       : $NEW_ID"
 echo "🌐 Path WebSocket      : $WS_PATH"
-echo "🌐 Dominio Clásico      : $SERVICE_URL"
+echo "🌐 Dominio Clásico     : $SERVICE_URL"
 echo "🌐 Dominio Regional    : $REGIONAL_DOMAIN"
 echo -e "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${RESET}"
 
