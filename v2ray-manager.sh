@@ -9,7 +9,7 @@ nc='\e[0m'
 
 function construir_servicio() {
     echo -e "${blue}Instalando servicio...${nc}"
-    wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/build-service-v2ray.sh -O build-service-v2ray.sh && bash build-service-v2ray.sh
+    wget -q https://github.com/ChristopherAGT/v2ray-vless-ws/blob/main/build-service-v2ray.sh -O build-service-v2ray.sh && bash build-service-v2ray.sh
 }
 
 function remover_servicio() {
