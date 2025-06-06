@@ -25,21 +25,16 @@ function mostrar_menu() {
         echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
         echo -e "${yellow}1) Construir Servicio${nc}"
         echo -e "${yellow}2) Remover Servicio${nc}"
-        echo -e "${yellow}3) Salir script${nc}"
-        echo -e "${yellow}4) Salir y cerrar Cloud Shell${nc}"
+        echo -e "${yellow}3) Salir${nc}"
         echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
-        echo -ne "${yellow}Seleccione una opción [1-4]: ${nc}"
+        echo -ne "${yellow}Seleccione una opción [1-3]: ${nc}"
 
         read -r opcion
 
         case $opcion in
             1) construir_servicio; break ;;
             2) remover_servicio; break ;;
-            3) echo -e "${green}Saliendo del script...${nc}"; exit 0 ;;
-            4) 
-                echo -e "${green}Cerrando sesión Cloud Shell...${nc}"
-                kill -9 $$
-                ;;
+            3) echo -e "${green}Saliendo...${nc}"; exit 0 ;;
             *) echo -e "${red}Opción inválida. Inténtalo de nuevo.${nc}"; sleep 2 ;;
         esac
     done
