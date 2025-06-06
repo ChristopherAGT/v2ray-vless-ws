@@ -151,8 +151,8 @@ fi
 
 print_section "Eliminando archivos locales relacionados"
 files_to_delete=(
-  "./script-v2ray.sh"
-  "./script-v2ray-uninstall.sh"
+  "./build-service-v2ray.sh"
+  "./remove-service-v2ray.sh"
 )
 
 for file in "${files_to_delete[@]}"; do
