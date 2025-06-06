@@ -75,10 +75,9 @@ Este proceso incluye:
 
 ## 🧾 Configuración Importante
 
-- 📜 `script-v2ray.sh` → Script automatizado de despliegue.  
-- 📜 `script-v2ray-uninstall.sh` → Script para remover servicios y limpiar recursos.  
-- 📜 `config.json` → Configuración de V2Ray (puedes personalizarla).  
-- 📜 `Dockerfile` → Define la imagen Docker del servicio.
+- 📜 `build-service-v2ray.sh` → Contruye y despliega un servicio nuevo.  
+- 📜 `script-v2ray-uninstall.sh` → Remueve servicios existentes y limpia recursos.  
+- 📜 `v2ray-manager.sh` → Panel interactivo con herramientes con herramuentas para gestionar los script anteriores.  
 
 ---
 
