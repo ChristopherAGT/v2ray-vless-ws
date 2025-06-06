@@ -44,6 +44,26 @@ if [[ -z "$PROJECT_ID" ]]; then
   fi
 fi
 
+# 🔢 Obtener el número del proyecto GCP (Project Number)
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)' 2>/dev/null)
+
+if [[ -z "$PROJECT_NUMBER" ]]; then
+  echo -e "${RED}"
+  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo    "❌ ERROR AL OBTENER NÚMERO DEL PROYECTO"
+  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${RESET}"
+  echo -e "${RED}❌ No se pudo obtener el número del proyecto (projectNumber).${RESET}"
+  exit 1
+else
+  echo -e "${GREEN}"
+  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo    "🔢 NÚMERO DEL PROYECTO OBTENIDO"
+  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${RESET}"
+  echo -e "${GREEN}🔢 Número del proyecto: $PROJECT_NUMBER${RESET}"
+fi
+
 # ✅ Mostrar proyecto activo
 echo -e "${GREEN}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -297,7 +317,7 @@ SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --format="value(status.url)")
 
   # 🌐 Generar también el dominio regional
-REGIONAL_DOMAIN="https://${CUSTOM_IMAGE_NAME}-${PROJECT_ID}.${REGION}.run.app"
+REGIONAL_DOMAIN="https://${CUSTOM_IMAGE_NAME}-${PROJECT_NUMBER}.${REGION}.run.app"
 
 # ✅ Mostrar resumen final
 echo -e "\n${GREEN}📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
