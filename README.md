@@ -87,7 +87,7 @@ Este proceso incluye:
 Una vez desplegado el servicio, puedes utilizar el siguiente formato para configurar tu cliente:
 
 ```bash
-vless://añade.tu.uuid.generado@añade.tu.bug.host:443?path=%2FBlackSutra&security=tls&encryption=none&host=añade.tu.subdominio.google.cloud&fp=random&type=ws&sni=añade.tu.bug.host#
+vless://TU-UUID@TU-BUG-HOST:443?path=%2FBlackSutra&security=tls&encryption=none&host=TU-SUBDOMINIO-GOOGLE-CLOUD&fp=random&type=ws&sni=TU-BUG-HOST#
 ```
 
 🔧 **Importante:** Asegúrate de reemplazar los siguientes campos según corresponda:
