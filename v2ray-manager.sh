@@ -12,7 +12,7 @@ CONFIG_BASE="/etc/v2ray-instances"
 
 function construir_servicio() {
     echo -e "${blue}Instalando servicio...${nc}"
-    wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/script-v2ray.sh -O script-v2ray.sh && bash script-v2ray.sh
+    wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/build-service-v2ray.sh -O build-service-v2ray.sh && bash build-service-v2ray.sh
 }
 
 function editar_json() {
@@ -54,7 +54,7 @@ function editar_json() {
 
 function remover_servicio() {
     echo -e "${red}Eliminando servicio...${nc}"
-    wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/script-v2ray-uninstall.sh -O script-v2ray-uninstall.sh && bash script-v2ray-uninstall.sh
+    wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/remove-service-v2ray.sh -O remove-service-v2ray.sh && bash remove-service-v2ray.sh
 }
 
 function mostrar_menu() {
