@@ -50,7 +50,7 @@ function mostrar_menu() {
             2) remover_servicio ;;
             3)
                 echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
-                echo -e "${yellow}Saliendo... 👾 Creditos a Leo Duarte${nc}"
+                echo -e "${yellow}Saliendo...${nc}"
                 exit 0
                 ;;
             *) echo -e "${red}Opción inválida. Inténtalo de nuevo.${nc}"; sleep 2 ;;
