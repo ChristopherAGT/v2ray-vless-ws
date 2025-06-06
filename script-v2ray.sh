@@ -259,7 +259,7 @@ SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
 echo -e "\n${GREEN}📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🔍 INFORMACIÓN ESENCIAL"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🗂️ Proyecto GCP       : $PROJECT_ID"
+echo "🗂️ Proyecto GCP        : $PROJECT_ID"
 echo "📛 Nombre de la Imagen : $CUSTOM_IMAGE_NAME"
 echo "🆔 UUID Generado       : $NEW_ID"
 echo "📍 Región Desplegada   : $REGION"
