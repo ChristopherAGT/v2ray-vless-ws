@@ -44,9 +44,7 @@ wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/scr
 ### 🧱 Este script:
 
 - 🧩 Solicita un nombre personalizado para la imagen Docker.
-
 - 🌍 Muestra una lista de regiones disponibles en Cloud Run para que elijas dónde desplegar tu servicio.
-
 - 📸 Al finalizar, muestra una serie de **datos importantes** que debes **guardar o capturar en pantalla**, ya que son necesarios para configurar tu cliente.
 
 ### 📋 Detalles sobre la función de este cript:
