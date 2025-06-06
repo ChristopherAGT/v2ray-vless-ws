@@ -92,11 +92,23 @@ vless://TU-UUID@TU-BUG-HOST:443?path=%2FCloud-CDN%2F&security=tls&encryption=non
 
 🔧 **Importante:** Asegúrate de reemplazar los siguientes campos según corresponda:
 
-- `añade.tu.uuid.generado` → UUID generado automáticamente durante la instalación.
-- `añade.tu.bug.host` → Host de bug (por ejemplo, `www.microsoft.com`).
-- `añade.tu.subdominio.google.cloud` → Subdominio que apunta a tu servicio en Cloud Run.
+- `TU-UUID` → UUID generado automáticamente durante la instalación.
+- `TU-BUG-HOST` → Host de bug (por ejemplo, `www.microsoft.com`).
+- `TU-SUBDOMINIO-GOOGLE-CLOUD` → Subdominio que apunta a tu servicio en Cloud Run.
 
 ---
 
 Con este sistema, el despliegue y la eliminación de servicios son rápidos, seguros y totalmente automáticos desde Google Cloud Shell.  
 ✨ **Simplemente copia, pega y sigue las instrucciones en pantalla.**
+
+---
+
+## 👨‍💻 Desarrollador del Proyecto
+
+Este proyecto ha sido desarrollado y mantenido por:
+
+### **✌🏻 ChristopherAGT - Guatemalteco 🇬🇹**
+
+---
+
+> 💬 *“La automatización no reemplaza la habilidad; la potencia.”*
