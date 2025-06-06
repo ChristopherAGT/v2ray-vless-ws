@@ -12,9 +12,11 @@ function construir_servicio() {
     wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/build-service-v2ray.sh -O build-service-v2ray.sh
     if [[ $? -ne 0 || ! -s build-service-v2ray.sh ]]; then
         echo -e "${red}Error al descargar el script de construcción.${nc}"
-        return 1
+    else
+        bash build-service-v2ray.sh
     fi
-    bash build-service-v2ray.sh
+    echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
+    read -n 1 -s -r -p "Presiona cualquier tecla para volver al menú..."
 }
 
 function remover_servicio() {
@@ -22,9 +24,11 @@ function remover_servicio() {
     wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/remove-service-v2ray.sh -O remove-service-v2ray.sh
     if [[ $? -ne 0 || ! -s remove-service-v2ray.sh ]]; then
         echo -e "${red}Error al descargar el script de eliminación.${nc}"
-        return 1
+    else
+        bash remove-service-v2ray.sh
     fi
-    bash remove-service-v2ray.sh
+    echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
+    read -n 1 -s -r -p "Presiona cualquier tecla para volver al menú..."
 }
 
 function mostrar_menu() {
@@ -38,14 +42,13 @@ function mostrar_menu() {
         echo -e "${yellow}3) Salir${nc}"
         echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
         echo -ne "${yellow}Seleccione una opción [1-3]: ${nc}"
-        echo -e "\n${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
 
         read -r opcion
 
         case $opcion in
             1) construir_servicio ;;
             2) remover_servicio ;;
-            3) echo -e "${green}Saliendo...${nc}"; exit 0 ;;
+            3) echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"; echo -e "${green}Saliendo...${nc}"; exit 0 ;;
             *) echo -e "${red}Opción inválida. Inténtalo de nuevo.${nc}"; sleep 2 ;;
         esac
     done
