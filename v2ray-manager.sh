@@ -20,9 +20,9 @@ function remover_servicio() {
 function mostrar_menu() {
     while true; do
         clear
-        echo -e "${green}======================================"
+        echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo -e "     PANEL DE CONTROL V2RAY-VLESS"
-        echo -e "======================================${nc}"
+        echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
         echo -e "${yellow}1) Construir Servicio"
         echo -e "2) Remover Servicio"
         echo -e "3) Salir${nc}"
