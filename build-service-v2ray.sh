@@ -203,7 +203,7 @@ if [[ -z "$REGION" ]]; then
 fi
 
 # 📍 Mostrar región seleccionada
-echo -e "${GREEN}"
+echo -e "${CYAN}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo    "📍 REGIÓN SELECCIONADA"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -274,7 +274,7 @@ if [[ -z "$WS_PATH" ]]; then
 fi
 
 # 🛠️ Reemplazar el path en config.json
-echo -e "${CYAN}🛠️ Actualizando path en config.json...${RESET}"
+echo -e "${BLUE}🛠️ Actualizando path en config.json...${RESET}"
 sed -i "s|\"path\":\s*\"[^\"]*\"|\"path\": \"$WS_PATH\"|" config.json
 
 # ✏️ Edición manual de config.json
