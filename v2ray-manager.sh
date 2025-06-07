@@ -25,7 +25,7 @@ function construir_servicio() {
 }
 
 function remover_servicio() {
-    echo -e "${red}🧹 Eliminando servicio V2Ray...${RESET}"
+    echo -e "${red}🧹 Removiendo servicio construido...${RESET}"
     wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/remove-service-v2ray.sh -O remove-service-v2ray.sh
     if [[ $? -ne 0 || ! -s remove-service-v2ray.sh ]]; then
         echo -e "${red}❌ Error al descargar el script de eliminación.${RESET}"
