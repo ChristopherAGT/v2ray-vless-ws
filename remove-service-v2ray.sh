@@ -11,22 +11,19 @@
 # -------------------------------
 # Configuración de colores y emojis
 # -------------------------------
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[1;36m'
-NC='\033[0m'
+RED='\033[1;31m'      # Rojo para errores (brillante/negrita)
+GREEN='\033[1;32m'    # Verde para éxito (brillante/negrita)
+YELLOW='\033[1;33m'   # Amarillo para advertencias/avisos (brillante/negrita)
+CYAN='\033[1;36m'     # Cian para información/neutro (brillante/negrita)
+NC='\033[0m'          # Reset (sin color)
 
 # -------------------------------
 # Funciones auxiliares
 # -------------------------------
+
 function handle_error {
   echo -e "${RED}❌ ERROR:${NC} $1"
   exit 1
-}
-
-function handle_input_error {
-  echo -e "${RED}❌ Opción inválida. Por favor, ingrese un número válido de la lista.${NC}"
 }
 
 function print_section {
@@ -38,8 +35,10 @@ function print_section {
 # -------------------------------
 # Variables globales
 # -------------------------------
+
 print_section "Obteniendo regiones disponibles para Cloud Run"
 
+# Obtener regiones Cloud Run automáticamente
 mapfile -t regions < <(gcloud run regions list --format="value(locationId)")
 
 if [[ ${#regions[@]} -eq 0 ]]; then
@@ -49,15 +48,25 @@ fi
 echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 
 declare -a service_array
+
+print_section "Buscando servicios Cloud Run en todas las regiones (paralelizado)"
+echo -e "${YELLOW}⏳ Esto puede tardar unos segundos...${NC}"
+
 declare -a pids=()
 declare -a tmp_files=()
 
-# Limpieza automática de archivos temporales
-trap 'rm -f "${tmp_files[@]}"' EXIT
+total_regions=${#regions[@]}
+completed=0
 
-print_section "Buscando servicios Cloud Run en todas las regiones (paralelizado)"
-echo -n "⏳ Esto puede tardar unos segundos"
+# Función para mostrar barra de progreso
+show_progress() {
+  local progress=$((completed * 100 / total_regions))
+  local filled=$((progress / 4))
+  local empty=$((25 - filled))
+  printf "\r🔄 Progreso: [%-${filled}s%s] %3d%%" "$(printf '█%.0s' $(seq 1 $filled))" "$(printf '.%.0s' $(seq 1 $empty))" "$progress"
+}
 
+# Ejecutar en paralelo
 for region in "${regions[@]}"; do
   tmp_file=$(mktemp)
   tmp_files+=("$tmp_file")
@@ -65,26 +74,30 @@ for region in "${regions[@]}"; do
   (
     gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null || true
   ) > "$tmp_file" &
-  pids+=($!)
-  echo -n "."
-done
-echo ""
 
+  pids+=($!)
+done
+
+# Esperar cada PID y actualizar barra de progreso
 for pid in "${pids[@]}"; do
   wait "$pid"
+  ((completed++))
+  show_progress
 done
 
+echo -e "\n${GREEN}✅ Búsqueda completada en todas las regiones.${NC}"
+
+# Leer resultados
 for i in "${!tmp_files[@]}"; do
   region="${regions[$i]}"
   while IFS= read -r svc; do
     [[ -n "$svc" ]] && service_array+=("$svc::$region")
   done < "${tmp_files[$i]}"
+  rm -f "${tmp_files[$i]}"
 done
 
 if [[ ${#service_array[@]} -eq 0 ]]; then
-  print_section "Resultado de la búsqueda"
-  echo -e "${RED}🚫 No se encontraron servicios Cloud Run en las regiones disponibles.${NC}"
-  exit 0
+  handle_error "No se encontraron servicios Cloud Run en las regiones disponibles."
 fi
 
 echo -e "${GREEN}🟢 Servicios encontrados:${NC}"
@@ -99,7 +112,7 @@ while true; do
   if [[ "$service_index" =~ ^[0-9]+$ ]] && [ "$service_index" -ge 1 ] && [ "$service_index" -le "${#service_array[@]}" ]; then
     break
   fi
-  handle_input_error
+  echo -e "${RED}❌ Opción inválida. Por favor, ingrese un número válido de la lista.${NC}"
 done
 
 selected="${service_array[$((service_index-1))]}"
@@ -132,7 +145,7 @@ while true; do
   if [[ "$image_index" =~ ^[0-9]+$ ]] && [ "$image_index" -ge 1 ] && [ "$image_index" -le "${#image_array[@]}" ]; then
     break
   fi
-  handle_input_error
+  echo -e "${RED}❌ Opción inválida. Por favor, ingrese un número válido de la lista.${NC}"
 done
 
 selected_image="${image_array[$((image_index-1))]}"
@@ -178,24 +191,19 @@ else
   echo -e "${GREEN}✅ Imagen eliminada correctamente.${NC}"
 fi
 
-read -rp $'\n¿Deseas eliminar también los archivos locales relacionados? (s/n): ' delete_files
-if [[ "$delete_files" =~ ^[sS]$ ]]; then
-  print_section "Eliminando archivos locales relacionados"
-  files_to_delete=(
-    "./build-service-v2ray.sh"
-    "./remove-service-v2ray.sh"
-  )
+print_section "Eliminando archivos locales relacionados"
+files_to_delete=(
+  "./build-service-v2ray.sh"
+  "./remove-service-v2ray.sh"
+)
 
-  for file in "${files_to_delete[@]}"; do
-    if [[ -f "$file" ]]; then
-      echo "🗑️ Eliminando archivo: ${file}"
-      rm -f "$file"
-    else
-      echo "ℹ️ Archivo no encontrado: ${file}"
-    fi
-  done
-else
-  echo -e "${YELLOW}📁 Archivos locales conservados por solicitud del usuario.${NC}"
-fi
+for file in "${files_to_delete[@]}"; do
+  if [[ -f "$file" ]]; then
+    echo "🗑️ Eliminando archivo: ${file}"
+    rm -f "$file"
+  else
+    echo "ℹ️ Archivo no encontrado: ${file}"
+  fi
+done
 
 echo -e "\n${GREEN}🎉 Proceso de limpieza completado con éxito.${NC}"
