@@ -27,9 +27,9 @@ function handle_error {
 }
 
 function print_section {
-  echo -e "\n${CYAN}─────────────────────────────${NC}"
+  echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "${CYAN}🔹 $1${NC}"
-  echo -e "${CYAN}─────────────────────────────${NC}\n"
+  echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
 # -------------------------------
@@ -49,7 +49,7 @@ echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 
 declare -a service_array
 
-print_section "Buscando servicios Cloud Run en todas las regiones"
+print_section "Buuscando servicios Cloud Run en todas las regiones"
 
 for region in "${regions[@]}"; do
   services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null || true)
