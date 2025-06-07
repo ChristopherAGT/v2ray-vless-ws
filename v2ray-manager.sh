@@ -17,14 +17,14 @@ function construir_servicio() {
     else
         bash build-service-v2ray.sh
         echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
-        echo -e "${green}✅ Servicio instalado correctamente.${nc}"
+        echo -e "${green}✅ Servicio construido correctamente.${nc}"
     fi
     echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
-    read -n 1 -s -r -p "🔁 Presiona cualquier tecla para volver al menú..."
+    read -n 1 -s -r -p "🔁 Presione cualquier tecla para volver al menú..."
 }
 
 function remover_servicio() {
-    echo -e "${red}🧹 Eliminando servicio V2Ray...${nc}"
+    echo -e "${red}🧹 Eliminando servicio construido...${nc}"
     wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/remove-service-v2ray.sh -O remove-service-v2ray.sh
     if [[ $? -ne 0 || ! -s remove-service-v2ray.sh ]]; then
         echo -e "${red}❌ Error al descargar el script de eliminación.${nc}"
@@ -34,7 +34,7 @@ function remover_servicio() {
         echo -e "${green}✅ Servicio eliminado correctamente.${nc}"
     fi
     echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
-    read -n 1 -s -r -p "🔁 Presiona cualquier tecla para volver al menú..."
+    read -n 1 -s -r -p "🔁 Presione cualquier tecla para volver al menú..."
 }
 
 function mostrar_menu() {
