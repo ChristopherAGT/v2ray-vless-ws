@@ -50,42 +50,41 @@ echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 declare -a service_array
 
 print_section "Buscando servicios Cloud Run en todas las regiones (paralelizado)"
-echo -e "${YELLOW}⏳ Esto puede tardar unos segundos...${NC}"
+echo -ne "${YELLOW}⏳ Esto puede tardar unos segundos, buscando servicios en todas las regiones${NC}"
 
+# Animación de puntos (mientras corre en background)
+(
+  while true; do
+    for dots in "." ".." "..." "...." "....."; do
+      echo -ne "\r${YELLOW}⏳ Esto puede tardar unos segundos, buscando servicios en todas las regiones$dots${NC}"
+      sleep 0.5
+    done
+  done
+) &
+spinner_pid=$!
+
+# Buscar servicios en paralelo
 declare -a pids=()
 declare -a tmp_files=()
 
-total_regions=${#regions[@]}
-completed=0
-
-# Función para mostrar barra de progreso
-show_progress() {
-  local progress=$((completed * 100 / total_regions))
-  local filled=$((progress / 4))
-  local empty=$((25 - filled))
-  printf "\r🔄 Progreso: [%-${filled}s%s] %3d%%" "$(printf '█%.0s' $(seq 1 $filled))" "$(printf '.%.0s' $(seq 1 $empty))" "$progress"
-}
-
-# Ejecutar en paralelo
 for region in "${regions[@]}"; do
   tmp_file=$(mktemp)
   tmp_files+=("$tmp_file")
-
   (
     gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null || true
   ) > "$tmp_file" &
-
   pids+=($!)
 done
 
-# Esperar cada PID y actualizar barra de progreso
 for pid in "${pids[@]}"; do
   wait "$pid"
-  ((completed++))
-  show_progress
 done
 
-echo -e "\n${GREEN}✅ Búsqueda completada en todas las regiones.${NC}"
+# Detener spinner
+kill "$spinner_pid" &>/dev/null
+wait "$spinner_pid" 2>/dev/null
+
+echo -e "\r${GREEN}✅ Búsqueda completada.${NC}                                             "
 
 # Leer resultados
 for i in "${!tmp_files[@]}"; do
@@ -101,6 +100,7 @@ if [[ ${#service_array[@]} -eq 0 ]]; then
 fi
 
 echo -e "${GREEN}🟢 Servicios encontrados:${NC}"
+echo "0. ❌ Cancelar y salir"
 for i in "${!service_array[@]}"; do
   svc_name="${service_array[$i]%%::*}"
   svc_region="${service_array[$i]##*::}"
@@ -108,8 +108,11 @@ for i in "${!service_array[@]}"; do
 done
 
 while true; do
-  read -rp $'\nSeleccione el número del servicio que desea eliminar: ' service_index
-  if [[ "$service_index" =~ ^[0-9]+$ ]] && [ "$service_index" -ge 1 ] && [ "$service_index" -le "${#service_array[@]}" ]; then
+  read -rp $'\nSeleccione el número del servicio que desea eliminar (o 0 para cancelar): ' service_index
+  if [[ "$service_index" == "0" ]]; then
+    echo -e "${YELLOW}🚪 Operación cancelada por el usuario.${NC}"
+    exit 0
+  elif [[ "$service_index" =~ ^[0-9]+$ ]] && [ "$service_index" -ge 1 ] && [ "$service_index" -le "${#service_array[@]}" ]; then
     break
   fi
   echo -e "${RED}❌ Opción inválida. Por favor, ingrese un número válido de la lista.${NC}"
