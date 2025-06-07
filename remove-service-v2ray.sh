@@ -50,7 +50,7 @@ echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 declare -a service_array
 
 print_section "Buscando servicios Cloud Run en todas las regiones (paralelizado)"
-echo -ne "${YELLOW}⏳ Esto puede tardar unos segundos${NC}"
+echo -ne "${YELLOW}⏳ Esto puede tardar unos segundos, buscando servicios en todas las regiones${NC}"
 
 # Animación de puntos (mientras corre en background)
 (
