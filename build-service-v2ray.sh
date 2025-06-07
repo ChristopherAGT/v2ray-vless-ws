@@ -78,10 +78,10 @@ echo    "━━━━━━━━━━━━━━━━━━━━━━━�
 echo    "🖊️ INGRESO DE NOMBRE PARA LA IMAGEN DOCKER"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${RESET}"
-read -p "🖊️ Ingrese un nombre para tu imagen (sin espacios) [default: my-default-image]: " CUSTOM_IMAGE_NAME
+read -p "🖊️ Ingrese un nombre para tu imagen (sin espacios) [default: google-cloud]: " CUSTOM_IMAGE_NAME
 
 if [[ -z "$CUSTOM_IMAGE_NAME" ]]; then
-  CUSTOM_IMAGE_NAME="my-default-image"
+  CUSTOM_IMAGE_NAME="google-cloud"
   echo -e "${YELLOW}⚠️ No ingresaste nombre. Se usará el nombre por defecto: $CUSTOM_IMAGE_NAME${RESET}"
 fi
 
