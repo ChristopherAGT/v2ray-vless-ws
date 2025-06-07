@@ -11,12 +11,11 @@
 # -------------------------------
 # Configuración de colores y emojis
 # -------------------------------
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[1;36m'
-MAGENTA='\033[1;35m'  # Rosado brillante
-NC='\033[0m'
+RED='\033[1;31m'      # Rojo para errores (brillante/negrita)
+GREEN='\033[1;32m'    # Verde para éxito (brillante/negrita)
+YELLOW='\033[1;33m'   # Amarillo para advertencias/avisos (brillante/negrita)
+CYAN='\033[1;36m'     # Cian para información/neutro (brillante/negrita)
+NC='\033[0m'          # Reset (sin color)
 
 # -------------------------------
 # Funciones auxiliares
@@ -33,26 +32,13 @@ function print_section {
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
-function show_progress_bar {
-  local total=$1
-  local current=$2
-  local width=30
-
-  local percent=$((current * 100 / total))
-  local filled=$((width * current / total))
-  local empty=$((width - filled))
-  local bar=$(printf "%${filled}s" | tr ' ' '█')
-  bar+=$(printf "%${empty}s" | tr ' ' '░')
-
-  echo -ne "${MAGENTA}⏳ Esto puede tardar unos segundos...${NC} [${bar}] ${percent}%\r"
-}
-
 # -------------------------------
 # Variables globales
 # -------------------------------
 
 print_section "Obteniendo regiones disponibles para Cloud Run"
 
+# Obtener regiones Cloud Run automáticamente
 mapfile -t regions < <(gcloud run regions list --format="value(locationId)")
 
 if [[ ${#regions[@]} -eq 0 ]]; then
@@ -62,33 +48,45 @@ fi
 echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 
 declare -a service_array
+
+print_section "Buscando servicios Cloud Run en todas las regiones (paralelizado)"
+echo -ne "${YELLOW}⏳ Esto puede tardar unos segundos${NC}"
+
+# Animación de puntos (mientras corre en background)
+(
+  while true; do
+    for dots in "." ".." "..." "...." "....."; do
+      echo -ne "\r${YELLOW}⏳ Esto puede tardar unos segundos, buscando servicios en todas las regiones$dots${NC}"
+      sleep 0.5
+    done
+  done
+) &
+spinner_pid=$!
+
+# Buscar servicios en paralelo
 declare -a pids=()
 declare -a tmp_files=()
 
-print_section "Buscando servicios Cloud Run en todas las regiones (paralelizado)"
-
-total=${#regions[@]}
-for i in "${!regions[@]}"; do
-  region="${regions[$i]}"
+for region in "${regions[@]}"; do
   tmp_file=$(mktemp)
   tmp_files+=("$tmp_file")
-
   (
     gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null || true
   ) > "$tmp_file" &
   pids+=($!)
-
-  show_progress_bar "$total" "$((i+1))"
-  sleep 0.1
 done
 
-# Esperar finalización
 for pid in "${pids[@]}"; do
   wait "$pid"
 done
-echo -ne "\n"
 
-# Leer y juntar servicios
+# Detener spinner
+kill "$spinner_pid" &>/dev/null
+wait "$spinner_pid" 2>/dev/null
+
+echo -e "\r${GREEN}✅ Búsqueda completada.${NC}                                             "
+
+# Leer resultados
 for i in "${!tmp_files[@]}"; do
   region="${regions[$i]}"
   while IFS= read -r svc; do
@@ -102,19 +100,17 @@ if [[ ${#service_array[@]} -eq 0 ]]; then
 fi
 
 echo -e "${GREEN}🟢 Servicios encontrados:${NC}"
+echo "0. ❌ Cancelar y salir"
 for i in "${!service_array[@]}"; do
   svc_name="${service_array[$i]%%::*}"
   svc_region="${service_array[$i]##*::}"
   echo "$((i+1)). Servicio: ${svc_name}, Región: ${svc_region}"
 done
 
-# Opción adicional para salir
-echo "0. ❌ Cancelar y salir"
-
 while true; do
-  read -rp $'\nSeleccione el número del servicio que desea eliminar: ' service_index
+  read -rp $'\nSeleccione el número del servicio que desea eliminar (o 0 para cancelar): ' service_index
   if [[ "$service_index" == "0" ]]; then
-    echo -e "${YELLOW}❌ Operación cancelada por el usuario.${NC}"
+    echo -e "${YELLOW}🚪 Operación cancelada por el usuario.${NC}"
     exit 0
   elif [[ "$service_index" =~ ^[0-9]+$ ]] && [ "$service_index" -ge 1 ] && [ "$service_index" -le "${#service_array[@]}" ]; then
     break
