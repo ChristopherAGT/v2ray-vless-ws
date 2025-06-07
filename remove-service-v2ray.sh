@@ -45,7 +45,7 @@ if [[ ${#regions[@]} -eq 0 ]]; then
   handle_error "No se encontraron regiones disponibles para Cloud Run."
 fi
 
-echo -e "${GREEN}✅️ Lista Obtenida${NC}"
+echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 
 declare -a service_array
 
