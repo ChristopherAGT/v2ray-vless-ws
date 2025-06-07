@@ -50,19 +50,15 @@ echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 declare -a service_array
 
 print_section "Buscando servicios Cloud Run en todas las regiones"
-print_section "Buscando servicios Cloud Run en todas las regiones"
 
-# Obtener todos los servicios de todas las regiones con una sola llamada
-service_lines=$(gcloud run services list --platform=managed --limit=9999 --format="table[no-heading](metadata.name, location)" 2>/dev/null)
+service_lines=$(gcloud run services list --platform=managed --limit=9999 --format="value(metadata.name),value(location)" 2>/dev/null)
 
-# Validar si se encontraron servicios
 if [[ -z "$service_lines" ]]; then
   handle_error "No se encontraron servicios Cloud Run."
 fi
 
-# Procesar los resultados en el array service_array
 declare -a service_array
-while IFS=$'\t' read -r name location; do
+while IFS=',' read -r name location; do
   [[ -n "$name" && -n "$location" ]] && service_array+=("$name::$location")
 done <<< "$service_lines"
 
