@@ -78,7 +78,7 @@ echo    "━━━━━━━━━━━━━━━━━━━━━━━�
 echo    "🖊️ INGRESO DE NOMBRE PARA LA IMAGEN DOCKER"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${RESET}"
-read -p "🖊️ Ingresa un nombre para tu imagen (sin espacios): " CUSTOM_IMAGE_NAME
+read -p "🖊️ Ingrese un nombre para tu imagen (sin espacios): " CUSTOM_IMAGE_NAME
 
 if [[ -z "$CUSTOM_IMAGE_NAME" ]]; then
   echo -e "${RED}"
