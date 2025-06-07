@@ -15,11 +15,13 @@ RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[1;36m'
+MAGENTA='\033[1;35m'  # Rosado brillante
 NC='\033[0m'
 
 # -------------------------------
 # Funciones auxiliares
 # -------------------------------
+
 function handle_error {
   echo -e "${RED}❌ ERROR:${NC} $1"
   exit 1
@@ -42,12 +44,13 @@ function show_progress_bar {
   local bar=$(printf "%${filled}s" | tr ' ' '█')
   bar+=$(printf "%${empty}s" | tr ' ' '░')
 
-  echo -ne "${YELLOW}⏳ Esto puede tardar unos segundos...${NC} [${bar}] ${percent}%\r"
+  echo -ne "${MAGENTA}⏳ Esto puede tardar unos segundos...${NC} [${bar}] ${percent}%\r"
 }
 
 # -------------------------------
-# Inicia proceso
+# Variables globales
 # -------------------------------
+
 print_section "Obteniendo regiones disponibles para Cloud Run"
 
 mapfile -t regions < <(gcloud run regions list --format="value(locationId)")
@@ -61,13 +64,12 @@ echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 declare -a service_array
 declare -a pids=()
 declare -a tmp_files=()
-total_regions=${#regions[@]}
-completed_regions=0
 
 print_section "Buscando servicios Cloud Run en todas las regiones (paralelizado)"
 
-# Lanzar procesos en background
-for region in "${regions[@]}"; do
+total=${#regions[@]}
+for i in "${!regions[@]}"; do
+  region="${regions[$i]}"
   tmp_file=$(mktemp)
   tmp_files+=("$tmp_file")
 
@@ -75,17 +77,18 @@ for region in "${regions[@]}"; do
     gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null || true
   ) > "$tmp_file" &
   pids+=($!)
+
+  show_progress_bar "$total" "$((i+1))"
+  sleep 0.1
 done
 
-# Esperar procesos con barra real
-for i in "${!pids[@]}"; do
-  wait "${pids[$i]}"
-  ((completed_regions++))
-  show_progress_bar "$total_regions" "$completed_regions"
+# Esperar finalización
+for pid in "${pids[@]}"; do
+  wait "$pid"
 done
-echo -e ""  # Salto de línea después de la barra
+echo -ne "\n"
 
-# Leer resultados de tmp files
+# Leer y juntar servicios
 for i in "${!tmp_files[@]}"; do
   region="${regions[$i]}"
   while IFS= read -r svc; do
@@ -104,23 +107,21 @@ for i in "${!service_array[@]}"; do
   svc_region="${service_array[$i]##*::}"
   echo "$((i+1)). Servicio: ${svc_name}, Región: ${svc_region}"
 done
-echo "$(( ${#service_array[@]} + 1 )). ❌ Cancelar y salir"
+
+# Opción adicional para salir
+echo "0. ❌ Cancelar y salir"
 
 while true; do
   read -rp $'\nSeleccione el número del servicio que desea eliminar: ' service_index
-  if [[ "$service_index" =~ ^[0-9]+$ ]] && [ "$service_index" -ge 1 ] && [ "$service_index" -le "$(( ${#service_array[@]} + 1 ))" ]; then
+  if [[ "$service_index" == "0" ]]; then
+    echo -e "${YELLOW}❌ Operación cancelada por el usuario.${NC}"
+    exit 0
+  elif [[ "$service_index" =~ ^[0-9]+$ ]] && [ "$service_index" -ge 1 ] && [ "$service_index" -le "${#service_array[@]}" ]; then
     break
   fi
   echo -e "${RED}❌ Opción inválida. Por favor, ingrese un número válido de la lista.${NC}"
 done
 
-# Si selecciona salir
-if [[ "$service_index" -eq "$(( ${#service_array[@]} + 1 ))" ]]; then
-  echo -e "${YELLOW}🚪 Operación cancelada. Saliendo...${NC}"
-  exit 0
-fi
-
-# Seleccionado
 selected="${service_array[$((service_index-1))]}"
 service_name="${selected%%::*}"
 region="${selected##*::}"
@@ -165,7 +166,9 @@ echo "Imagen   : ${image_name}"
 
 digest=$(gcloud container images list-tags "gcr.io/${project_name}/${image_name}" --format='get(digest)' --limit=1 --filter='tags:*' | head -n 1)
 
-[[ -z "$digest" ]] && digest="latest"
+if [[ -z "$digest" ]]; then
+  digest="latest"
+fi
 
 if [[ "$digest" == "latest" ]]; then
   image_ref="gcr.io/${project_name}/${image_name}:latest"
