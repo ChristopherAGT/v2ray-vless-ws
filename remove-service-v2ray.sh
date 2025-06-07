@@ -49,18 +49,39 @@ echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 
 declare -a service_array
 
-print_section "Buscando servicios Cloud Run en todas las regiones"
+print_section "Buscando servicios Cloud Run en todas las regiones (paralelizado)"
 
-service_lines=$(gcloud run services list --platform=managed --limit=9999 --format="value(metadata.name),value(location)" 2>/dev/null)
+declare -a pids=()
+declare -a tmp_files=()
 
-if [[ -z "$service_lines" ]]; then
-  handle_error "No se encontraron servicios Cloud Run."
+for region in "${regions[@]}"; do
+  tmp_file=$(mktemp)
+  tmp_files+=("$tmp_file")
+
+  # Ejecutar el comando en background y guardar salida en tmp_file
+  (
+    gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null || true
+  ) > "$tmp_file" &
+  pids+=($!)
+done
+
+# Esperar que terminen todos
+for pid in "${pids[@]}"; do
+  wait "$pid"
+done
+
+# Leer resultados de todos los tmp_files
+for i in "${!tmp_files[@]}"; do
+  region="${regions[$i]}"
+  while IFS= read -r svc; do
+    [[ -n "$svc" ]] && service_array+=("$svc::$region")
+  done < "${tmp_files[$i]}"
+  rm -f "${tmp_files[$i]}"
+done
+
+if [[ ${#service_array[@]} -eq 0 ]]; then
+  handle_error "No se encontraron servicios Cloud Run en las regiones disponibles."
 fi
-
-declare -a service_array
-while IFS=',' read -r name location; do
-  [[ -n "$name" && -n "$location" ]] && service_array+=("$name::$location")
-done <<< "$service_lines"
 
 echo -e "${GREEN}🟢 Servicios encontrados:${NC}"
 for i in "${!service_array[@]}"; do
