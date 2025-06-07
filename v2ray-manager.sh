@@ -11,7 +11,7 @@ RESET="\033[0m"
 
 function construir_servicio() {
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"  # Línea añadida
-    echo -e "${YELLOW}⚙️ Construyendo un nuevo servicio...${RESET}"
+    echo -e "${YELLOW}⚙️ Construyendo un nuevo...${RESET}"
     wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/build-service-v2ray.sh -O build-service-v2ray.sh
     if [[ $? -ne 0 || ! -s build-service-v2ray.sh ]]; then
         echo -e "${RED}❌ Error al descargar el script de construcción.${RESET}"
@@ -26,7 +26,7 @@ function construir_servicio() {
 
 function remover_servicio() {
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"  # Línea añadida
-    echo -e "${RED}🧹 Removiendo servicio construido...${RESET}"
+    echo -e "${RED}🧹 Removiendo un servicio...${RESET}"
     wget -q https://raw.githubusercontent.com/ChristopherAGT/v2ray-vless-ws/main/remove-service-v2ray.sh -O remove-service-v2ray.sh
     if [[ $? -ne 0 || ! -s remove-service-v2ray.sh ]]; then
         echo -e "${RED}❌ Error al descargar el script de eliminación.${RESET}"
