@@ -104,10 +104,13 @@ for i in "${!image_array[@]}"; do
   echo "$((i+1)). ${image_array[$i]}"
 done
 
-read -rp $'\nSeleccione el número de la imagen que desea eliminar: ' image_index
-if ! [[ "$image_index" =~ ^[0-9]+$ ]] || [ "$image_index" -lt 1 ] || [ "$image_index" -gt "${#image_array[@]}" ]; then
-  handle_error "Selección inválida. Por favor, ingrese un número válido."
-fi
+while true; do
+  read -rp $'\nSeleccione el número de la imagen que desea eliminar: ' image_index
+  if [[ "$image_index" =~ ^[0-9]+$ ]] && [ "$image_index" -ge 1 ] && [ "$image_index" -le "${#image_array[@]}" ]; then
+    break
+  fi
+  echo -e "${RED}❌ Opción inválida. Por favor, ingrese un número válido de la lista.${NC}"
+done
 
 selected_image="${image_array[$((image_index-1))]}"
 project_and_image="${selected_image#gcr.io/}"
