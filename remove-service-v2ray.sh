@@ -11,11 +11,11 @@
 # -------------------------------
 # Configuración de colores y emojis
 # -------------------------------
-RED='\033[0;31m'      # Rojo para errores
-GREEN='\033[0;32m'    # Verde para éxito
-YELLOW='\033[1;33m'   # Amarillo para advertencias/avisos
-CYAN='\033[0;36m'     # Cian para información/neutro
-NC='\033[0m'          # Sin color (reset)
+RED='\033[1;31m'      # Rojo para errores (brillante/negrita)
+GREEN='\033[1;32m'    # Verde para éxito (brillante/negrita)
+YELLOW='\033[1;33m'   # Amarillo para advertencias/avisos (brillante/negrita)
+CYAN='\033[1;36m'     # Cian para información/neutro (brillante/negrita)
+NC='\033[0m'          # Reset (sin color)
 
 # -------------------------------
 # Funciones auxiliares
