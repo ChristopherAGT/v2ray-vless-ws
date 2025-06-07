@@ -189,18 +189,21 @@ for i in "${!REGIONS[@]}"; do
   printf "%2d) %s\n" $((i+1)) "${REGIONS[$i]}"
 done
 
-read -p "Ingrese el número de la región deseada: " REGION_INDEX
-REGION=${REGION_CODES[$((REGION_INDEX-1))]}
-
-if [[ -z "$REGION" ]]; then
-  echo -e "${RED}"
-  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo    "❌ SELECCIÓN DE REGIÓN INVÁLIDA"
-  echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo -e "${RESET}"
-  echo -e "${RED}❌ Selección inválida. Abortando.${RESET}"
-  exit 1
-fi
+while true; do
+  read -p "Ingrese el número de la región deseada: " REGION_INDEX
+  
+  if ! [[ "$REGION_INDEX" =~ ^[0-9]+$ ]] || (( REGION_INDEX < 1 || REGION_INDEX > ${#REGION_CODES[@]} )); then
+    echo -e "${RED}"
+    echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo    "❌ SELECCIÓN DE REGIÓN INVÁLIDA"
+    echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${RESET}"
+    echo -e "${RED}❌ Selección inválida. Por favor ingrese un número válido.${RESET}"
+  else
+    REGION=${REGION_CODES[$((REGION_INDEX-1))]}
+    break
+  fi
+done
 
 # 📍 Mostrar región seleccionada
 echo -e "${CYAN}"
@@ -277,13 +280,30 @@ fi
 echo -e "${BLUE}🛠️ Actualizando path en config.json...${RESET}"
 sed -i "s|\"path\":\s*\"[^\"]*\"|\"path\": \"$WS_PATH\"|" config.json
 
-# ✏️ Edición manual de config.json
+# ✏️ Confirmar edición manual de config.json
 echo -e "${BLUE}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo    "📝 EDICIÓN MANUAL DE CONFIG.JSON"
+echo    "📝 EDICIÓN MANUAL DE CONFIG.JSON (OPCIONAL)"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${RESET}"
-nano config.json
+
+while true; do
+  read -p "¿Deseas editar manualmente el archivo config.json con nano? (s/N): " CONFIRM_EDIT
+
+  case "$CONFIRM_EDIT" in
+    [sS])
+      nano config.json
+      break
+      ;;
+    [nN]|"")
+      echo -e "${YELLOW}⚠️ Edición manual omitida. Continuando con el despliegue...${RESET}"
+      break
+      ;;
+    *)
+      echo -e "${RED}❌ Opción inválida. Por favor responde 's' para sí o 'n' para no.${RESET}"
+      ;;
+  esac
+done
 
 # 🐳 Construir imagen Docker
 IMAGE_NAME="gcr.io/$PROJECT_ID/$CUSTOM_IMAGE_NAME"
