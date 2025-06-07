@@ -249,6 +249,7 @@ echo    "🔐 GENERANDO NUEVO UUID"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${RESET}"
 NEW_ID=$(uuidgen)
+echo -e "${GREEN}🆔 UUID generado: $NEW_ID${RESET}"
 
 # 🛠️ Actualizando UUID en config.json
 echo -e "${GREEN}"
