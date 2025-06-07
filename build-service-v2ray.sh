@@ -288,7 +288,7 @@ echo    "━━━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${RESET}"
 
 while true; do
-  read -p "¿Deseas editar manualmente el archivo config.json con nano? (s/N): " CONFIRM_EDIT
+  read -p "¿Deseas editar manualmente el archivo config.json con nano? (s/n): " CONFIRM_EDIT
 
   case "$CONFIRM_EDIT" in
     [sS])
