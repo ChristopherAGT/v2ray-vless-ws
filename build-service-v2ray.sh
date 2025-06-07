@@ -11,19 +11,6 @@ BLUE="\033[1;34m"
 CYAN="\033[1;36m"
 RESET="\033[0m"
 
-# 📦 Verificar que gcloud, git y docker estén instalados
-for cmd in gcloud git docker; do
-  if ! command -v $cmd &>/dev/null; then
-    echo -e "${RED}❌ El comando '$cmd' no está instalado. Por favor instálalo antes de continuar.${RESET}"
-    exit 1
-  fi
-done
-
-# 🔐 Comprobando si se puede usar sudo sin contraseña
-if ! sudo -n true 2>/dev/null; then
-  echo -e "${YELLOW}⚠️ Es posible que se te solicite la contraseña de sudo más adelante.${RESET}"
-fi
-
 # 🔧 Comprobando configuración de Google Cloud CLI
 echo -e "${CYAN}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -104,19 +91,108 @@ if [[ -z "$CUSTOM_IMAGE_NAME" ]]; then
 fi
 
 # 🌍 Mostrar regiones para selección
-# (Tu lista completa de regiones y códigos permanece intacta)
-# ...
-# Aquí se encuentra tu lista de REGIONS y REGION_CODES sin cambios
+echo -e "${BLUE}"
+echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo    "🌍 SELECCIÓN DE REGIÓN DE DESPLIEGUE"
+echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "${RESET}"
+declare -a REGIONS=(
+  "🇿🇦 africa-south1 (Johannesburgo)"
+  "🇨🇦 northamerica-northeast1 (Montreal)"
+  "🇨🇦 northamerica-northeast2 (Toronto)"
+  "🇲🇽 northamerica-south1 (México)"
+  "🇧🇷 southamerica-east1 (São Paulo)"
+  "🇨🇱 southamerica-west1 (Santiago)"
+  "🇺🇸 us-central1 (Iowa)"
+  "🇺🇸 us-east1 (Carolina del Sur)"
+  "🇺🇸 us-east4 (Virginia del Norte)"
+  "🇺🇸 us-east5 (Columbus)"
+  "🇺🇸 us-south1 (Dallas)"
+  "🇺🇸 us-west1 (Oregón)"
+  "🇺🇸 us-west2 (Los Ángeles)"
+  "🇺🇸 us-west3 (Salt Lake City)"
+  "🇺🇸 us-west4 (Las Vegas)"
+  "🇹🇼 asia-east1 (Taiwán)"
+  "🇭🇰 asia-east2 (Hong Kong)"
+  "🇯🇵 asia-northeast1 (Tokio)"
+  "🇯🇵 asia-northeast2 (Osaka)"
+  "🇰🇷 asia-northeast3 (Seúl)"
+  "🇮🇳 asia-south1 (Bombay)"
+  "🇮🇳 asia-south2 (Delhi)"
+  "🇸🇬 asia-southeast1 (Singapur)"
+  "🇮🇩 asia-southeast2 (Yakarta)"
+  "🇦🇺 australia-southeast1 (Sídney)"
+  "🇦🇺 australia-southeast2 (Melbourne)"
+  "🇵🇱 europe-central2 (Varsovia)"
+  "🇫🇮 europe-north1 (Finlandia)"
+  "🇸🇪 europe-north2 (Estocolmo)"
+  "🇪🇸 europe-southwest1 (Madrid)"
+  "🇧🇪 europe-west1 (Bélgica)"
+  "🇬🇧 europe-west2 (Londres)"
+  "🇩🇪 europe-west3 (Fráncfort)"
+  "🇳🇱 europe-west4 (Netherlands)"
+  "🇨🇭 europe-west6 (Zúrich)"
+  "🇮🇹 europe-west8 (Milán)"
+  "🇫🇷 europe-west9 (París)"
+  "🇩🇪 europe-west10 (Berlín)"
+  "🇮🇹 europe-west12 (Turín)"
+  "🇶🇦 me-central1 (Doha)"
+  "🇸🇦 me-central2 (Dammam)"
+  "🇮🇱 me-west1 (Tel Aviv)"
+)
+declare -a REGION_CODES=(
+  "africa-south1"
+  "northamerica-northeast1"
+  "northamerica-northeast2"
+  "northamerica-south1"
+  "southamerica-east1"
+  "southamerica-west1"
+  "us-central1"
+  "us-east1"
+  "us-east4"
+  "us-east5"
+  "us-south1"
+  "us-west1"
+  "us-west2"
+  "us-west3"
+  "us-west4"
+  "asia-east1"
+  "asia-east2"
+  "asia-northeast1"
+  "asia-northeast2"
+  "asia-northeast3"
+  "asia-south1"
+  "asia-south2"
+  "asia-southeast1"
+  "asia-southeast2"
+  "australia-southeast1"
+  "australia-southeast2"
+  "europe-central2"
+  "europe-north1"
+  "europe-north2"
+  "europe-southwest1"
+  "europe-west1"
+  "europe-west2"
+  "europe-west3"
+  "europe-west4"
+  "europe-west6"
+  "europe-west8"
+  "europe-west9"
+  "europe-west10"
+  "europe-west12"
+  "me-central1"
+  "me-central2"
+  "me-west1"
+)
 
-# Mostrar las regiones
 for i in "${!REGIONS[@]}"; do
   printf "%2d) %s\n" $((i+1)) "${REGIONS[$i]}"
 done
 
 read -p "Ingrese el número de la región deseada: " REGION_INDEX
+REGION=${REGION_CODES[$((REGION_INDEX-1))]}
 
-# Validar índice como número y dentro del rango
-if ! [[ "$REGION_INDEX" =~ ^[0-9]+$ ]] || (( REGION_INDEX < 1 || REGION_INDEX > ${#REGION_CODES[@]} )); then
+if [[ -z "$REGION" ]]; then
   echo -e "${RED}"
   echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo    "❌ SELECCIÓN DE REGIÓN INVÁLIDA"
@@ -125,8 +201,6 @@ if ! [[ "$REGION_INDEX" =~ ^[0-9]+$ ]] || (( REGION_INDEX < 1 || REGION_INDEX > 
   echo -e "${RED}❌ Selección inválida. Abortando.${RESET}"
   exit 1
 fi
-
-REGION=${REGION_CODES[$((REGION_INDEX-1))]}
 
 # 📍 Mostrar región seleccionada
 echo -e "${CYAN}"
@@ -242,6 +316,7 @@ SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
   --port 8080 \
   --format="value(status.url)")
 
+  # 🌐 Generar también el dominio regional
 REGIONAL_DOMAIN="https://${CUSTOM_IMAGE_NAME}-${PROJECT_NUMBER}.${REGION}.run.app"
 
 # ✅ Mostrar resumen final
