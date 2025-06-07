@@ -245,7 +245,7 @@ if ! command -v uuidgen &> /dev/null; then
 fi
 
 # 🔐 Generar nuevo UUID
-echo -e "${CYAN}"
+echo -e "${GREEN}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo    "🔐 GENERANDO NUEVO UUID"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -253,7 +253,7 @@ echo -e "${RESET}"
 NEW_ID=$(uuidgen)
 
 # 🛠️ Actualizando UUID en config.json
-echo -e "${CYAN}"
+echo -e "${GREEN}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo    "🛠️ ACTUALIZANDO UUID EN CONFIG.JSON"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -320,7 +320,7 @@ SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
 REGIONAL_DOMAIN="https://${CUSTOM_IMAGE_NAME}-${PROJECT_NUMBER}.${REGION}.run.app"
 
 # ✅ Mostrar resumen final
-echo -e "\n${CYAN}📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "\n${BLUE}📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🔍 INFORMACIÓN ESENCIAL"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🗂️ ID del Proyecto GCP : $PROJECT_ID"
