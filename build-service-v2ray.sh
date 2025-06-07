@@ -320,7 +320,7 @@ SERVICE_URL=$(gcloud run deploy "$CUSTOM_IMAGE_NAME" \
 REGIONAL_DOMAIN="https://${CUSTOM_IMAGE_NAME}-${PROJECT_NUMBER}.${REGION}.run.app"
 
 # ✅ Mostrar resumen final
-echo -e "\n${GREEN}📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "\n${CYAN}📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🔍 INFORMACIÓN ESENCIAL"
 echo "📦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🗂️ ID del Proyecto GCP : $PROJECT_ID"
