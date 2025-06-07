@@ -243,6 +243,7 @@ if ! command -v uuidgen &> /dev/null; then
 fi
 
 # 🔐 Generar nuevo UUID
+# 🔐 Generar nuevo UUID
 echo -e "${GREEN}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo    "🔐 GENERANDO NUEVO UUID"
@@ -258,6 +259,7 @@ echo    "🛠️ ACTUALIZANDO UUID EN CONFIG.JSON"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${RESET}"
 sed -i "s/\"id\":\s*\"[^\"]*\"/\"id\": \"$NEW_ID\"/" config.json
+echo -e "${GREEN}✅ UUID actualizado correctamente en config.json.${RESET}"
 
 # 🌐 Solicitar nuevo path para WebSocket
 echo -e "${BLUE}"
