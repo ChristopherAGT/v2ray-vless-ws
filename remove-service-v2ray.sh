@@ -49,7 +49,7 @@ echo -e "${GREEN}✅️ Lista obtenida exitosamente${NC}"
 
 declare -a service_array
 
-print_section "Buuscando servicios Cloud Run en todas las regiones"
+print_section "Buscando servicios Cloud Run en todas las regiones"
 
 for region in "${regions[@]}"; do
   services=$(gcloud run services list --platform=managed --region="$region" --format="value(metadata.name)" 2>/dev/null || true)
@@ -71,10 +71,13 @@ for i in "${!service_array[@]}"; do
   echo "$((i+1)). Servicio: ${svc_name}, Región: ${svc_region}"
 done
 
-read -rp $'\nSeleccione el número del servicio que desea eliminar: ' service_index
-if ! [[ "$service_index" =~ ^[0-9]+$ ]] || [ "$service_index" -lt 1 ] || [ "$service_index" -gt "${#service_array[@]}" ]; then
-  handle_error "Selección inválida. Por favor, ingrese un número válido."
-fi
+while true; do
+  read -rp $'\nSeleccione el número del servicio que desea eliminar: ' service_index
+  if [[ "$service_index" =~ ^[0-9]+$ ]] && [ "$service_index" -ge 1 ] && [ "$service_index" -le "${#service_array[@]}" ]; then
+    break
+  fi
+  echo -e "${RED}❌ Opción inválida. Por favor, ingrese un número válido de la lista.${NC}"
+done
 
 selected="${service_array[$((service_index-1))]}"
 service_name="${selected%%::*}"
