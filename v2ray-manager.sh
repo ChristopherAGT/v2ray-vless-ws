@@ -16,6 +16,7 @@ function construir_servicio() {
         echo -e "${red}❌ Error al descargar el script de construcción.${nc}"
     else
         bash build-service-v2ray.sh
+        echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
         echo -e "${green}✅ Servicio instalado correctamente.${nc}"
     fi
     echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
@@ -29,6 +30,7 @@ function remover_servicio() {
         echo -e "${red}❌ Error al descargar el script de eliminación.${nc}"
     else
         bash remove-service-v2ray.sh
+        echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
         echo -e "${green}✅ Servicio eliminado correctamente.${nc}"
     fi
     echo -e "${green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${nc}"
