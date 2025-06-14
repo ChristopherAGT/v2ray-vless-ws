@@ -243,7 +243,6 @@ if ! command -v uuidgen &> /dev/null; then
 fi
 
 # 🔐 Generar nuevo UUID
-# 🔐 Generar nuevo UUID
 echo -e "${GREEN}"
 echo    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo    "🔐 GENERANDO NUEVO UUID"
@@ -269,14 +268,24 @@ echo    "━━━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${RESET}"
 read -p "🌐 Ingresa el nuevo path para WebSocket (ej: /Cloud-CDN): " WS_PATH
 
+# ⚠️ Si no se ingresa nada, se asigna un valor por defecto
 if [[ -z "$WS_PATH" ]]; then
   echo -e "${YELLOW}⚠️ No se ingresó ningún path. Usando valor por defecto: /Cloud-CDN${RESET}"
   WS_PATH="/Cloud-CDN"
 fi
 
+# ➕ Añadir '/' inicial si falta
+[[ "${WS_PATH}" != /* ]] && WS_PATH="/${WS_PATH}"
+
+# ✅ Confirmación
+echo -e "${GREEN}✔️  Path final configurado: ${WS_PATH}${RESET}"
+
+# 🧼 Escapar caracteres especiales para sed
+escaped_path=$(printf '%s\n' "$WS_PATH" | sed 's/[&/\]/\\&/g')
+
 # 🛠️ Reemplazar el path en config.json
 echo -e "${BLUE}🛠️ Actualizando path en config.json...${RESET}"
-sed -i "s|\"path\":\s*\"[^\"]*\"|\"path\": \"$WS_PATH\"|" config.json
+sed -i "s|\"path\":\s*\"[^\"]*\"|\"path\": \"$escaped_path\"|" config.json
 
 # ✏️ Confirmar edición manual de config.json
 echo -e "${BLUE}"
